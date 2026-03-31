@@ -376,7 +376,7 @@ export default function FloorPlan2D({ data, imageUrl }) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, walls, img: loadedImg, hoveredSet, viewStyle });
-  }, [roomPolys, svgEdges, windows, doors, walls, loadedImg, hoveredSet, viewStyle, W, H]);
+  }, [roomPolys, svgEdges, windows, walls, loadedImg, hoveredSet, viewStyle, W, H]);
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', gap: 0 }}>
