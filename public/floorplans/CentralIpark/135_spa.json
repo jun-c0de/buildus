@@ -97,37 +97,6 @@
       "image_id": 1,
       "segmentation": [
         [
-          208,
-          521,
-          206,
-          566,
-          210,
-          574,
-          350,
-          575,
-          358,
-          572,
-          356,
-          520
-        ]
-      ],
-      "area": 8421,
-      "bbox": [
-        206,
-        520,
-        152,
-        55
-      ],
-      "iscrowd": 0,
-      "room_name": "발코니",
-      "area_m2": 0.8
-    },
-    {
-      "id": 3,
-      "category_id": 4,
-      "image_id": 1,
-      "segmentation": [
-        [
           367,
           76,
           369,
@@ -154,7 +123,7 @@
       "area_m2": 1.3
     },
     {
-      "id": 4,
+      "id": 3,
       "category_id": 4,
       "image_id": 1,
       "segmentation": [
@@ -191,7 +160,7 @@
       "area_m2": 0.6
     },
     {
-      "id": 5,
+      "id": 4,
       "category_id": 5,
       "image_id": 1,
       "segmentation": [
@@ -234,7 +203,7 @@
       "area_m2": 5.7
     },
     {
-      "id": 6,
+      "id": 5,
       "category_id": 2,
       "image_id": 1,
       "segmentation": [
@@ -273,7 +242,7 @@
       "area_m2": 1.5
     },
     {
-      "id": 7,
+      "id": 6,
       "category_id": 4,
       "image_id": 1,
       "segmentation": [
@@ -304,7 +273,7 @@
       "area_m2": 2.4
     },
     {
-      "id": 8,
+      "id": 7,
       "category_id": 2,
       "image_id": 1,
       "segmentation": [
@@ -347,7 +316,7 @@
       "area_m2": 2.3
     },
     {
-      "id": 9,
+      "id": 8,
       "category_id": 3,
       "image_id": 1,
       "segmentation": [
@@ -404,7 +373,7 @@
       "area_m2": 0.4
     },
     {
-      "id": 10,
+      "id": 9,
       "category_id": 3,
       "image_id": 1,
       "segmentation": [
@@ -441,7 +410,95 @@
       "area_m2": 0.7
     },
     {
+      "id": 10,
+      "category_id": 4,
+      "image_id": 1,
+      "segmentation": [
+        [
+          647,
+          116,
+          647,
+          130,
+          645,
+          132,
+          646,
+          168,
+          643,
+          170,
+          644,
+          172,
+          649,
+          174,
+          676,
+          173,
+          679,
+          175,
+          710,
+          174,
+          716,
+          168,
+          715,
+          154,
+          717,
+          144,
+          717,
+          117,
+          715,
+          115,
+          704,
+          113,
+          649,
+          114
+        ]
+      ],
+      "area": 4417,
+      "bbox": [
+        643,
+        113,
+        74,
+        62
+      ],
+      "iscrowd": 0,
+      "area_m2": 0.4
+    },
+    {
       "id": 11,
+      "category_id": 4,
+      "image_id": 1,
+      "segmentation": [
+        [
+          208,
+          522,
+          206,
+          563,
+          210,
+          574,
+          355,
+          575,
+          357,
+          572,
+          358,
+          534,
+          357,
+          521,
+          354,
+          519,
+          223,
+          519
+        ]
+      ],
+      "area": 8493,
+      "bbox": [
+        206,
+        519,
+        152,
+        56
+      ],
+      "iscrowd": 0,
+      "area_m2": 0.8
+    },
+    {
+      "id": 12,
       "category_id": 6,
       "image_id": 1,
       "segmentation": [

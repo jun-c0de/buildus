@@ -275,7 +275,7 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
             })
         changes += 1
 
-    # ── 2단계: 화장실 색상 감지 (하늘색 배경) ───────────────────
+    # ── 2단계: 화장실 감지 (하늘색 지시자 → 전체 방 경계) ──────────
     img_rgb = np.array(Image.open(
         next(p for p in [spa_path.parent / (spa_path.stem.replace('_spa','') + ext)
                          for ext in ['.jpg','.jpeg']] if p.exists())
@@ -283,40 +283,102 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
     import cv2 as _cv2
     hsv_img = _cv2.cvtColor(img_rgb, _cv2.COLOR_RGB2HSV)
 
+    # 1차: 하늘색 지시자 마스크 수집 (세면대/욕조 등 내부 요소)
+    sky_indicators = []
     for pi, rp in enumerate(room_polys):
         if pi in used_poly: continue
         mask_2d = rp['seg']
-        if mask_2d.shape != (H, W):
-            continue
+        if mask_2d.shape != (H, W): continue
         region_h = hsv_img[:,:,0][mask_2d]
         region_s = hsv_img[:,:,1][mask_2d]
         region_v = hsv_img[:,:,2][mask_2d]
         if len(region_h) == 0: continue
-        # 하늘색: H 85-130, S 8-120, V 190-255
-        sky_ratio = np.mean(
+        sky_ratio = float(np.mean(
             (region_h >= 85) & (region_h <= 130) &
             (region_s >= 8)  & (region_s <= 120) &
             (region_v >= 190)
-        )
+        ))
         if sky_ratio >= 0.10:
-            used_poly.add(pi)
-            flat = rp['poly']
-            xs = flat[0::2]; ys = flat[1::2]
-            x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
-            log.append(f'  추가(색상감지): 공간_화장실 sky_ratio={sky_ratio:.2f} area={rp["area"]}px')
-            if not dry_run:
-                new_anns.append({
-                    'id': 0,
-                    'category_id': ensure_cat('공간_화장실'),
-                    'image_id': spa['images'][0]['id'],
-                    'segmentation': [flat],
-                    'area': rp['area'],
-                    'bbox': [x0, y0, x1-x0, y1-y0],
-                    'iscrowd': 0,
-                    'room_name': '화장실',
-                    'area_m2': round(rp['area']/10000, 1),
-                })
-            changes += 1
+            sky_indicators.append((pi, rp, sky_ratio))
+
+    # 2차: 각 지시자에 대해 전체 방 경계 탐색 (지시자를 포함하는 더 큰 마스크)
+    for pi_ind, rp_ind, sky_ratio in sky_indicators:
+        if pi_ind in used_poly: continue
+        bx, by, bw, bh = rp_ind['bbox']
+        ind_cx, ind_cy = bx + bw//2, by + bh//2
+
+        room_candidates = []
+        for pj, rp2 in enumerate(room_polys):
+            if pj in used_poly or pj == pi_ind: continue
+            if rp2['area'] <= rp_ind['area'] * 1.1: continue  # 반드시 더 커야 함
+            if rp2['area'] > img_area * 0.08: continue        # 최대 8%
+            if point_in_polygon(ind_cx, ind_cy, rp2['poly']):
+                room_candidates.append((pj, rp2))
+
+        if room_candidates:
+            room_candidates.sort(key=lambda x: x[1]['area'])
+            use_pi, use_rp = room_candidates[0]
+            used_poly.add(pi_ind)   # 지시자도 사용됨 표시
+        else:
+            use_pi, use_rp = pi_ind, rp_ind
+
+        used_poly.add(use_pi)
+        flat = use_rp['poly']
+        xs = flat[0::2]; ys = flat[1::2]
+        x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+        log.append(f'  추가(색상감지): 공간_화장실 sky_ratio={sky_ratio:.2f} area={use_rp["area"]}px')
+        if not dry_run:
+            new_anns.append({
+                'id': 0,
+                'category_id': ensure_cat('공간_화장실'),
+                'image_id': spa['images'][0]['id'],
+                'segmentation': [flat],
+                'area': use_rp['area'],
+                'bbox': [x0, y0, x1-x0, y1-y0],
+                'iscrowd': 0,
+                'room_name': '화장실',
+                'area_m2': round(use_rp['area']/10000, 1),
+            })
+        changes += 1
+
+    # ── 2.5단계: 발코니 확장 (인접 소형 미라벨 공간 → 발코니) ─────
+    # 현관 감지 전에 실행해 발코니 주변 회색 소공간 오탐 방지
+    # 조건: 발코니 bbox 20px 이내 + 면적 < 이미지의 3% (대형 방 흡수 방지)
+    balcony_cat_id = cat_by_name.get('공간_발코니')
+    max_annex_area = img_area * 0.03  # 최대 3%
+    if not dry_run:
+        balcony_bbox_list = [a['bbox'] for a in new_anns
+                             if a.get('category_id') == balcony_cat_id and a.get('bbox')]
+    else:
+        balcony_bbox_list = []
+
+    for pi, rp in enumerate(room_polys):       # 단일 패스 (체인 확장 방지)
+        if pi in used_poly: continue
+        if rp['area'] > max_annex_area: continue  # 대형 방 제외
+        bx, by, bw, bh = rp['bbox']
+        mcx, mcy = bx + bw//2, by + bh//2
+        margin = 20
+        for bb in balcony_bbox_list:
+            if (bb[0]-margin <= mcx <= bb[0]+bb[2]+margin and
+                    bb[1]-margin <= mcy <= bb[1]+bb[3]+margin):
+                used_poly.add(pi)
+                flat = rp['poly']
+                xs2 = flat[0::2]; ys2 = flat[1::2]
+                x0,y0,x1,y1 = min(xs2),min(ys2),max(xs2),max(ys2)
+                log.append(f'  추가(발코니인접): 공간_발코니 area={rp["area"]}px')
+                if not dry_run:
+                    new_anns.append({
+                        'id': 0,
+                        'category_id': ensure_cat('공간_발코니'),
+                        'image_id': spa['images'][0]['id'],
+                        'segmentation': [flat],
+                        'area': rp['area'],
+                        'bbox': [x0, y0, x1-x0, y1-y0],
+                        'iscrowd': 0,
+                        'area_m2': round(rp['area']/10000, 1),
+                    })
+                changes += 1
+                break
 
     # ── 3단계: 현관 감지 (흰색/회색 번갈아 타일 패턴)  ──────────────
     # 현관은 무채색(S<50) + 중간밝기(V:100-235) + 높은 V 분산(번갈아 패턴)
