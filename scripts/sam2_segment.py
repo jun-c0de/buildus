@@ -55,30 +55,53 @@ ROOM_MAX_AREA_PCT = {
     '공간_다목적공간': 0.14,
 }
 
+def _build_constraints(all_areas: dict) -> dict:
+    """룸별 면적 목록 → 제약 딕셔너리"""
+    constraints = {}
+    for cat, areas in all_areas.items():
+        mx = min(max(areas) * 5.0, 0.50)
+        if cat == '공간_주방':   mx = max(mx, 0.16)
+        if cat == '공간_거실':   mx = max(mx, 0.20)
+        if cat == '공간_화장실': mx = min(mx, 0.05)
+        if cat == '공간_욕실':   mx = min(mx, 0.06)
+        if cat == '공간_현관':   mx = min(mx, 0.05)
+        constraints[cat] = mx
+    return constraints
+
 def load_reference_constraints(ref_spa_path: Path):
-    """참조 도면(수동 annotation)에서 룸별 면적 비율 제약 자동 추출"""
+    """단일 참조 도면에서 룸별 면적 비율 제약 추출"""
     spa = json.loads(ref_spa_path.read_text(encoding='utf-8'))
     img = spa['images'][0]
     img_area = img['width'] * img['height']
     cats = {c['id']: c['name'] for c in spa['categories']}
-    room_areas = {}
+    all_areas = {}
     for ann in spa['annotations']:
         cat = cats.get(ann['category_id'], '')
         if cat in SKIP_CATS or cat == 'background': continue
-        pct = ann['area'] / img_area
-        room_areas.setdefault(cat, []).append(pct)
-    # 실측 최대값의 5배까지 허용 (더 큰 타입 대응), 주방은 최소 16%
-    constraints = {}
-    for cat, areas in room_areas.items():
-        mx = min(max(areas) * 5.0, 0.50)
-        if cat == '공간_주방':   mx = max(mx, 0.16)   # 주방은 거실과 합쳐질 수 있음
-        if cat == '공간_거실':   mx = max(mx, 0.20)
-        if cat == '공간_화장실': mx = min(mx, 0.05)   # 화장실은 작게 유지
-        if cat == '공간_현관':   mx = min(mx, 0.05)
-        constraints[cat] = mx
+        all_areas.setdefault(cat, []).append(ann['area'] / img_area)
+    constraints = _build_constraints(all_areas)
     print(f'  [참조] {ref_spa_path.name} → {len(constraints)}개 제약 로드')
+    return constraints
+
+def load_global_constraints(ref_paths: list) -> dict:
+    """여러 수동 annotation 파일을 합쳐 글로벌 제약 생성"""
+    all_areas = {}
+    loaded = []
+    for ref_path in ref_paths:
+        if not ref_path.exists(): continue
+        spa = json.loads(ref_path.read_text(encoding='utf-8'))
+        img = spa['images'][0]
+        img_area = img['width'] * img['height']
+        cats = {c['id']: c['name'] for c in spa['categories']}
+        for ann in spa['annotations']:
+            cat = cats.get(ann['category_id'], '')
+            if cat in SKIP_CATS or cat == 'background': continue
+            all_areas.setdefault(cat, []).append(ann['area'] / img_area)
+        loaded.append(ref_path.name)
+    constraints = _build_constraints(all_areas)
+    print(f'[글로벌 참조] {len(loaded)}개 파일 → {len(constraints)}개 룸 제약')
     for cat, mx in sorted(constraints.items()):
-        print(f'    {cat}: max={mx*100:.1f}%')
+        print(f'  {cat}: max={mx*100:.1f}%')
     return constraints
 
 def text_to_cat(text):
@@ -611,6 +634,7 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
 def main():
     args    = sys.argv[1:]
     dry_run = '--dry-run' in args
+    use_global = '--global' in args   # 수동 보정된 전체 파일을 글로벌 참조로 사용
 
     # --reference 135  →  같은 단지 내 135_spa.json을 참조 도면으로 사용
     ref_stem = None
@@ -626,31 +650,47 @@ def main():
         print(f'체크포인트 없음: {CHECKPOINT}'); sys.exit(1)
     if dry_run:
         print('[DRY RUN]\n')
-    if ref_stem:
-        print(f'[참조 도면] {ref_stem}_spa.json 을 면적 제약 기준으로 사용\n')
+
+    # 글로벌 참조: _corrections.json 이 있는 단지의 spa.json 을 모두 수집
+    global_constraints = None
+    if use_global:
+        ref_paths = []
+        for cx_dir in BASE.iterdir():
+            if not cx_dir.is_dir(): continue
+            for corr in cx_dir.glob('*_corrections.json'):
+                stem = corr.stem.replace('_corrections', '')
+                spa_path = cx_dir / f'{stem}_spa.json'
+                if spa_path.exists():
+                    ref_paths.append(spa_path)
+        if ref_paths:
+            global_constraints = load_global_constraints(ref_paths)
+        else:
+            print('[경고] --global 사용했지만 corrections 파일 없음')
 
     complexes = sorted(BASE.iterdir())
     if filter_:
         complexes = [c for c in complexes if c.name == filter_]
 
+    # CentralIpark, DongIl 은 이미 수동 작업 완료 → 스킵
+    SKIP_COMPLEXES = {'CentralIpark', 'DongIl'}
+
     done = skip = err = 0
     for cx_dir in complexes:
         if not cx_dir.is_dir(): continue
+        if use_global and cx_dir.name in SKIP_COMPLEXES:
+            print(f'\n[{cx_dir.name}] 수동 완료 단지 → 스킵')
+            continue
 
-        # 같은 단지 내 참조 도면 로드
-        ref_constraints = None
+        # 같은 단지 내 참조 도면 로드 (--reference 옵션)
+        ref_constraints = global_constraints  # 기본은 글로벌 참조
         if ref_stem:
             ref_path = cx_dir / f'{ref_stem}_spa.json'
             if ref_path.exists():
                 ref_constraints = load_reference_constraints(ref_path)
-            else:
-                print(f'  [경고] 참조 도면 없음: {ref_path}')
 
         for spa_path in sorted(cx_dir.glob('*_spa.json')):
             stem = spa_path.stem.replace('_spa', '')
-            # 참조 도면 자체는 다시 처리 안 함
             if ref_stem and stem == ref_stem:
-                print(f'  [스킵] 참조 도면: {spa_path.name}')
                 skip += 1; continue
 
             img_path = cx_dir / f'{stem}.jpg'
