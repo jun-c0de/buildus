@@ -7,15 +7,17 @@ const SAVE_SERVER = 'http://localhost:3001';
 const LABEL_KR = { basic: '기본형', expanded: '확장형' };
 
 const ROOM_TYPES = [
-  { key: '거실',       id: 1 },
-  { key: '침실',       id: 2 },
-  { key: '화장실',     id: 3 },
-  { key: '발코니',     id: 4 },
-  { key: '주방',       id: 5 },
-  { key: '현관',       id: 6 },
-  { key: '드레스룸',   id: 7 },
-  { key: '다목적공간', id: 8 },
-  { key: '기타',       id: 8 },
+  { key: '거실',       id: 1,  catName: '공간_거실' },
+  { key: '침실',       id: 2,  catName: '공간_침실' },
+  { key: '화장실',     id: 3,  catName: '공간_화장실' },
+  { key: '발코니',     id: 4,  catName: '공간_발코니' },
+  { key: '주방',       id: 5,  catName: '공간_주방' },
+  { key: '현관',       id: 6,  catName: '공간_현관' },
+  { key: '드레스룸',   id: 7,  catName: '공간_드레스룸' },
+  { key: '다목적공간', id: 8,  catName: '공간_다목적공간' },
+  { key: '욕실',       id: 13, catName: '공간_욕실' },
+  { key: '실외기실',   id: 14, catName: '공간_실외기실' },
+  { key: '기타',       id: 15, catName: '공간_기타' },
 ];
 
 // 구조 요소 타입 (str.json에 저장됨)
@@ -294,6 +296,20 @@ export default function FloorPlanLabeler() {
 
         <div style={{ flex: 1 }} />
 
+        {data && (
+          <button onClick={() => {
+            if (!window.confirm('모든 방 영역을 삭제하고 처음부터 시작할까요?')) return;
+            const allIds = new Set(data.rooms.map(r => r.id));
+            setDeletions(allIds);
+            setCorrections({});
+            setAdditions([]);
+            setSelectedId(null);
+          }}
+            style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #EF4444', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'transparent', color: '#EF4444' }}>
+            전체 초기화
+          </button>
+        )}
+
         {totalChanges > 0 && (
           <span style={{ color: '#FCD34D', fontSize: 12, fontWeight: 600 }}>
             수정 {Object.keys(corrections).length} · 삭제 {deletions.size} · 추가 {additions.length}
@@ -378,10 +394,10 @@ export default function FloorPlanLabeler() {
                   return (
                     <g key={r.id}>
                       <polygon points={pts}
-                        fill={isSelected ? cfg.border : isCorrected ? '#FCD34D' : 'transparent'}
-                        fillOpacity={isSelected ? 0.35 : isCorrected ? 0.22 : 0}
+                        fill={isSelected ? cfg.border : isCorrected ? '#F59E0B' : cfg.fill}
+                        fillOpacity={isSelected ? 0.55 : isCorrected ? 0.50 : 0.40}
                         stroke={isSelected ? cfg.border : isCorrected ? '#F59E0B' : cfg.border}
-                        strokeWidth={isSelected ? Math.max(W*0.005,3) : isCorrected ? Math.max(W*0.004,2) : 0}
+                        strokeWidth={isSelected ? Math.max(W*0.005,3) : Math.max(W*0.003,1.5)}
                         style={{ cursor: mode === 'select' ? 'pointer' : 'default' }}
                         onClick={e => { e.stopPropagation(); handleRoomClick(r.id); }}
                         onContextMenu={e => handleRoomRightClick(e, r.id)}

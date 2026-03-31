@@ -13,15 +13,17 @@ const PORT          = 3001;
 const FLOORPLAN_DIR = path.join(__dirname, 'public', 'floorplans');
 
 const CATEGORY_MAP = {
-  '거실':       { id: 1 },
-  '침실':       { id: 2 },
-  '화장실':     { id: 3 },
-  '발코니':     { id: 4 },
-  '주방':       { id: 5 },
-  '현관':       { id: 6 },
-  '드레스룸':   { id: 7 },
-  '다목적공간': { id: 8 },
-  '기타':       { id: 8 },
+  '거실':       { id: 1,  catName: '공간_거실' },
+  '침실':       { id: 2,  catName: '공간_침실' },
+  '화장실':     { id: 3,  catName: '공간_화장실' },
+  '발코니':     { id: 4,  catName: '공간_발코니' },
+  '주방':       { id: 5,  catName: '공간_주방' },
+  '현관':       { id: 6,  catName: '공간_현관' },
+  '드레스룸':   { id: 7,  catName: '공간_드레스룸' },
+  '다목적공간': { id: 8,  catName: '공간_다목적공간' },
+  '욕실':       { id: 13, catName: '공간_욕실' },
+  '실외기실':   { id: 14, catName: '공간_실외기실' },
+  '기타':       { id: 15, catName: '공간_기타' },
 };
 
 function readBody(req) {
@@ -90,9 +92,20 @@ const server = http.createServer(async (req, res) => {
           spa.annotations = spa.annotations.filter(a => !delSet.has(a.id));
         }
 
+        // 카테고리가 없으면 spa.json categories에 추가
+        function ensureCategory(spa, catId, catName) {
+          if (!spa.categories.find(c => c.id === catId)) {
+            spa.categories.push({ id: catId, name: catName });
+          }
+        }
+
         // 3. 신규 추가
         let nextId = spa.annotations.reduce((m, a) => Math.max(m, a.id), 0) + 1;
         for (const add of additions) {
+          const mapped = CATEGORY_MAP[add.newName];
+          const catId = mapped?.id ?? 15;
+          if (mapped) ensureCategory(spa, catId, mapped.catName);
+
           const poly = add.poly; // [[x,y], ...]
           const flat = poly.flatMap(p => p);
           const cx   = poly.reduce((s, p) => s + p[0], 0) / poly.length;
@@ -106,11 +119,11 @@ const server = http.createServer(async (req, res) => {
           area = Math.abs(area) / 2;
           spa.annotations.push({
             id:           nextId++,
-            category_id:  CATEGORY_MAP[add.newName]?.id ?? 8,
+            category_id:  catId,
             image_id:     1,
             segmentation: [flat],
             area:         Math.round(area),
-            area_m2:      null,   // 저장 후 재계산 필요 시 null
+            area_m2:      null,
             room_name:    add.newName,
             bbox:         [Math.min(...poly.map(p=>p[0])), Math.min(...poly.map(p=>p[1])),
                            Math.max(...poly.map(p=>p[0])) - Math.min(...poly.map(p=>p[0])),
