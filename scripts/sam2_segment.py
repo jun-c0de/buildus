@@ -28,7 +28,7 @@ ROOM_RULES = [
     (['침실','안방'],                                    '공간_침실'),
     (['화장실'],                                         '공간_화장실'),
     (['욕실'],                                           '공간_욕실'),
-    (['현관'],                                           '공간_현관'),
+    (['현관','전실'],                                    '공간_현관'),   # 전실 = 현관 홀
     (['발코니','베란다'],                                '공간_발코니'),
     (['드레스룸'],                                       '공간_드레스룸'),
     (['다목적공간','다목적'],                            '공간_다목적공간'),
@@ -67,10 +67,15 @@ def load_reference_constraints(ref_spa_path: Path):
         if cat in SKIP_CATS or cat == 'background': continue
         pct = ann['area'] / img_area
         room_areas.setdefault(cat, []).append(pct)
-    # 실측 최대값의 3배까지 허용 (큰 타입 대응), 최소 0.3%
+    # 실측 최대값의 5배까지 허용 (더 큰 타입 대응), 주방은 최소 16%
     constraints = {}
     for cat, areas in room_areas.items():
-        constraints[cat] = min(max(areas) * 3.0, 0.50)
+        mx = min(max(areas) * 5.0, 0.50)
+        if cat == '공간_주방':   mx = max(mx, 0.16)   # 주방은 거실과 합쳐질 수 있음
+        if cat == '공간_거실':   mx = max(mx, 0.20)
+        if cat == '공간_화장실': mx = min(mx, 0.05)   # 화장실은 작게 유지
+        if cat == '공간_현관':   mx = min(mx, 0.05)
+        constraints[cat] = mx
     print(f'  [참조] {ref_spa_path.name} → {len(constraints)}개 제약 로드')
     for cat, mx in sorted(constraints.items()):
         print(f'    {cat}: max={mx*100:.1f}%')
@@ -248,7 +253,13 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
     new_anns  = list(struct_anns)
     used_poly = set()
 
-    for room in ocr_rooms:
+    # 작은 방(화장실/현관)부터 매칭 → 거실/주방이 겹친 큰 마스크에 묻히는 것 방지
+    ocr_rooms_sorted = sorted(
+        ocr_rooms,
+        key=lambda r: (ref_constraints or ROOM_MAX_AREA_PCT).get(r['cat'], ROOM_MAX_AREA_PCT.get(r['cat'], 0.50))
+    )
+
+    for room in ocr_rooms_sorted:
         cx, cy, cat, text = room['cx'], room['cy'], room['cat'], room['text']
 
         # point-in-polygon 매칭 (룸타입별 최대 면적 제한 적용)
@@ -273,6 +284,15 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
             if candidates and candidates[0][2] < 120:
                 matched = (candidates[0][0], candidates[0][1])
                 log.append(f'  [fallback] "{text}" 거리={candidates[0][2]:.0f}px')
+
+        # 거실 fallback: 미사용 마스크 중 가장 큰 것 (거실은 아파트 최대 방)
+        if not matched and cat == '공간_거실':
+            unused = [(pi, rp) for pi, rp in enumerate(room_polys)
+                      if pi not in used_poly and rp['area'] / img_area <= max_pct]
+            if unused:
+                pi_f, rp_f = max(unused, key=lambda x: x[1]['area'])
+                matched = (pi_f, rp_f)
+                log.append(f'  [거실fallback] "{text}" 최대미사용마스크 area={rp_f["area"]}px')
 
         if not matched:
             log.append(f'  미매칭: "{text}" ({cat})')
@@ -330,11 +350,13 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
         bx, by, bw, bh = rp_ind['bbox']
         ind_cx, ind_cy = bx + bw//2, by + bh//2
 
+        bath_max = (ref_constraints or ROOM_MAX_AREA_PCT).get('공간_화장실', 0.05)
+        bath_max = min(bath_max, 0.05)   # 화장실은 절대 5% 초과 안 함
         room_candidates = []
         for pj, rp2 in enumerate(room_polys):
             if pj in used_poly or pj == pi_ind: continue
             if rp2['area'] <= rp_ind['area'] * 1.1: continue  # 반드시 더 커야 함
-            if rp2['area'] > img_area * 0.08: continue        # 최대 8%
+            if rp2['area'] > img_area * bath_max: continue    # 화장실 최대 크기
             if point_in_polygon(ind_cx, ind_cy, rp2['poly']):
                 room_candidates.append((pj, rp2))
 
@@ -405,7 +427,9 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
 
     # ── 3단계: 현관 감지 (흰색/회색 번갈아 타일 패턴)  ──────────────
     # 현관은 무채색(S<50) + 중간밝기(V:100-235) + 높은 V 분산(번갈아 패턴)
-    for pi, rp in enumerate(room_polys):
+    # OCR로 이미 전실/현관이 잡혔으면 tile detection 스킵
+    _has_entrance = any(cat_by_id.get(a.get('category_id')) == '공간_현관' for a in new_anns)
+    for pi, rp in (enumerate(room_polys) if not _has_entrance else []):
         if pi in used_poly: continue
         # 현관 크기: 이미지의 0.3%~7%
         if not (img_area * 0.003 <= rp['area'] <= img_area * 0.07):
@@ -566,7 +590,9 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=
             a, b = room_only[i], room_only[j]
             if cat_by_id.get(a.get('category_id')) != cat_by_id.get(b.get('category_id')): continue
             if not a.get('bbox') or not b.get('bbox'): continue
-            if bbox_overlap(a['bbox'], b['bbox']) > 0.50:
+            # 화장실/욕실은 두 개가 각각 다른 위치에 있을 수 있으므로 임계값 높임
+            ov_thresh = 0.70 if cat_by_id.get(a.get('category_id')) in ('공간_화장실','공간_욕실') else 0.50
+            if bbox_overlap(a['bbox'], b['bbox']) > ov_thresh:
                 smaller = b if (a.get('area',0) >= b.get('area',0)) else a
                 to_remove.add(id(smaller))
                 log.append(f'  중복제거: {cat_by_id.get(a.get("category_id"))} area={smaller.get("area")}px')
