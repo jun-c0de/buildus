@@ -2,24 +2,10 @@ import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, OrthographicCamera } from '@react-three/drei';
 import * as THREE from 'three';
-import { ROOM_CONFIG, OPEN_PLAN_GROUPS } from '../data/roomConfig';
+import { ROOM_CONFIG, OPEN_PLAN_GROUPS, ROOM_FLOOR_COLOR } from '../data/roomConfig';
 
 const SCALE  = 10;
 const WALL_H = 2.5;
-
-const FLOOR_COLORS = {
-  공간_거실:       '#D4A96A',
-  공간_침실:       '#C8A060',
-  공간_드레스룸:   '#C4A060',
-  공간_다목적공간: '#C8A862',
-  공간_화장실:     '#E8E6E2',
-  공간_욕실:       '#E4E2DE',
-  공간_주방:       '#ECECEA',
-  공간_현관:       '#B8B0A4',
-  공간_발코니:     '#A8C4A0',
-  공간_실외기실:   '#C8CDD2',
-  공간_기타:       '#D8D8D8',
-};
 
 // ── 좌표 정규화 ──────────────────────────────────────────────────
 function normalize(poly, W, H) {
@@ -287,9 +273,10 @@ function RoomFurniture({ room, W, H }) {
 
 // ── 방 바닥 ───────────────────────────────────────────────────────
 function Room({ room, W, H }) {
-  const floorColor = FLOOR_COLORS[room.name] || '#D8CEC4';
-  const isWood     = ['공간_거실','공간_침실','공간_드레스룸','공간_다목적공간'].includes(room.name);
-  const isTile     = ['공간_화장실','공간_욕실','공간_주방'].includes(room.name);
+  const floorColor = ROOM_FLOOR_COLOR[room.name] || '#D8CEC4';
+  // 2D 텍스처와 동일하게 맞춤
+  const isWood     = ['공간_침실','공간_드레스룸','공간_다목적공간'].includes(room.name);
+  const isTile     = ['공간_화장실','공간_욕실'].includes(room.name);
   const isDarkTile = room.name === '공간_발코니';
 
   const tex = useMemo(() => {
