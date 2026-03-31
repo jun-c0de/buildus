@@ -327,7 +327,7 @@
     },
     {
       "id": 8,
-      "category_id": 3,
+      "category_id": 13,
       "image_id": 1,
       "segmentation": [
         [
@@ -498,87 +498,6 @@
         115
       ],
       "iscrowd": 0
-    },
-    {
-      "id": 10,
-      "category_id": 5,
-      "image_id": 1,
-      "segmentation": [
-        [
-          380,
-          165,
-          672,
-          165,
-          672,
-          507,
-          380,
-          507
-        ]
-      ],
-      "area": 99864,
-      "bbox": [
-        380,
-        165,
-        292,
-        342
-      ],
-      "iscrowd": 0,
-      "room_name": "주방및식당",
-      "area_m2": 10
-    },
-    {
-      "id": 11,
-      "category_id": 13,
-      "image_id": 1,
-      "segmentation": [
-        [
-          299,
-          253,
-          407,
-          253,
-          407,
-          390,
-          299,
-          390
-        ]
-      ],
-      "area": 14796,
-      "bbox": [
-        299,
-        253,
-        108,
-        137
-      ],
-      "iscrowd": 0,
-      "room_name": "욕실",
-      "area_m2": 1.5
-    },
-    {
-      "id": 12,
-      "category_id": 7,
-      "image_id": 1,
-      "segmentation": [
-        [
-          590,
-          277,
-          790,
-          277,
-          790,
-          516,
-          590,
-          516
-        ]
-      ],
-      "area": 47800,
-      "bbox": [
-        590,
-        277,
-        200,
-        239
-      ],
-      "iscrowd": 0,
-      "room_name": "드레스룸",
-      "area_m2": 4.8
     }
   ]
 }

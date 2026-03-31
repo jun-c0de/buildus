@@ -342,7 +342,7 @@
     },
     {
       "id": 9,
-      "category_id": 7,
+      "category_id": 2,
       "image_id": 1,
       "segmentation": [
         [
@@ -800,33 +800,6 @@
         57
       ],
       "iscrowd": 0
-    },
-    {
-      "id": 20,
-      "category_id": 5,
-      "image_id": 1,
-      "segmentation": [
-        [
-          444,
-          160,
-          548,
-          160,
-          548,
-          291,
-          444,
-          291
-        ]
-      ],
-      "area": 13624,
-      "bbox": [
-        444,
-        160,
-        104,
-        131
-      ],
-      "iscrowd": 0,
-      "room_name": "주방",
-      "area_m2": 1.4
     }
   ]
 }

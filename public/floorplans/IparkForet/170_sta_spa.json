@@ -476,7 +476,7 @@
     },
     {
       "id": 11,
-      "category_id": 6,
+      "category_id": 13,
       "image_id": 1,
       "segmentation": [
         [
@@ -510,60 +510,6 @@
         102
       ],
       "iscrowd": 0
-    },
-    {
-      "id": 12,
-      "category_id": 13,
-      "image_id": 1,
-      "segmentation": [
-        [
-          65,
-          275,
-          273,
-          275,
-          273,
-          523,
-          65,
-          523
-        ]
-      ],
-      "area": 51584,
-      "bbox": [
-        65,
-        275,
-        208,
-        248
-      ],
-      "iscrowd": 0,
-      "room_name": "실외기실",
-      "area_m2": 5.2
-    },
-    {
-      "id": 13,
-      "category_id": 5,
-      "image_id": 1,
-      "segmentation": [
-        [
-          162,
-          747,
-          270,
-          747,
-          270,
-          883,
-          162,
-          883
-        ]
-      ],
-      "area": 14688,
-      "bbox": [
-        162,
-        747,
-        108,
-        136
-      ],
-      "iscrowd": 0,
-      "room_name": "주방",
-      "area_m2": 1.5
     }
   ]
 }
