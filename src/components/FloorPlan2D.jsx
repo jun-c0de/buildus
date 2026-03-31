@@ -196,10 +196,10 @@ function drawLabels(ctx, roomPolys, W, H, photoMode = false) {
 }
 
 // ── 메인 Canvas 렌더링 ────────────────────────────────────────────
-function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, img, hoveredSet, viewStyle }) {
+function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, walls, img, hoveredSet, viewStyle }) {
   // Archisketch 기준 벽 두께
-  const extW = Math.max(W * 0.022, 14);  // 외벽: 두껍게
-  const intW = Math.max(W * 0.009, 6);   // 내벽: 중간
+  const extW = Math.max(W * 0.018, 12);  // 외벽
+  const intW = Math.max(W * 0.008, 5);   // 내벽
   const sw   = Math.max(W * 0.005, 4);
 
   ctx.clearRect(0, 0, W, H);
@@ -207,7 +207,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
   if (viewStyle === 'styled' || !img) {
     // ① 배경 (그리드 패턴 - 아키스케치 스타일)
     ctx.fillStyle = '#F7F6F2'; ctx.fillRect(0, 0, W, H);
-    const gs = Math.round(W / 46); // 격자 간격
+    const gs = Math.round(W / 46);
     ctx.save();
     ctx.strokeStyle = 'rgba(190,188,182,0.45)'; ctx.lineWidth = 0.5;
     for (let gx = 0; gx <= W; gx += gs) {
@@ -218,16 +218,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
     }
     ctx.restore();
 
-    // ② 방 바닥재 스트로크 먼저 (벽 두께 확보) — 외벽 두께의 2배로 stroke, fill이 안쪽 덮음
-    ctx.lineJoin = 'miter'; ctx.lineCap = 'square';
-    for (const r of roomPolys) {
-      ctx.save();
-      ctx.beginPath(); tracePoly(ctx, r.poly);
-      ctx.strokeStyle = '#333333'; ctx.lineWidth = extW * 2.2; ctx.stroke();
-      ctx.restore();
-    }
-
-    // ③ 방 바닥재 fill (스트로크 안쪽 덮어서 자연스러운 벽 두께)
+    // ② 방 바닥재 fill (스트로크 없이 — 벽은 아래에서 엣지로 명시)
     for (const r of roomPolys) {
       const pat = getPattern(ctx, r.name);
       ctx.save();
@@ -236,22 +227,31 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
       ctx.restore();
     }
 
-    // ④ 창문 (3선 건축 심볼) — fill 위, 벽선 아래에 그려야 자연스러움
+    // ③ 창문 (3선 건축 심볼)
     for (const poly of windows) drawWindow(ctx, poly, intW, extW);
 
-    // ⑤ 문 (삼각형 호 기호)
-    for (const poly of doors) drawDoorArc(ctx, poly, intW);
-
-    // ⑥ 내벽 선 보강 (방 사이 경계 명확히)
+    // ④ 외벽 (외곽 엣지만 → 일관된 두께)
     ctx.save();
-    ctx.strokeStyle = '#333333'; ctx.lineWidth = intW; ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
+    ctx.strokeStyle = '#1A1A18';
+    ctx.lineWidth = extW * 2;  // 절반이 방 외부에 표시 = extW 두께 벽
+    ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
+    for (const { p1, p2 } of svgEdges.external) {
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ⑤ 내벽 (공유 엣지 → 균일한 선 두께)
+    ctx.save();
+    ctx.strokeStyle = '#1A1A18';
+    ctx.lineWidth = intW;
+    ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
     for (const { p1, p2 } of svgEdges.internal) {
       ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
     }
     ctx.restore();
     // 오픈플랜 경계는 그리지 않음 (시각적 연속성 유지)
 
-    // ⑦ 호버 하이라이트
+    // ⑥ 호버 하이라이트
     for (const r of roomPolys) {
       if (hoveredSet.has(r.key)) {
         ctx.save();
@@ -261,7 +261,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
       }
     }
 
-    // ⑧ 라벨
+    // ⑦ 라벨
     drawLabels(ctx, roomPolys, W, H, false);
 
   } else {
@@ -278,17 +278,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
       }
     }
 
-    // 문/창문 오버레이
-    for (const poly of doors) {
-      if (poly.length === 2) {
-        ctx.save();
-        ctx.strokeStyle = '#FFA726'; ctx.lineWidth = sw * 2; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(poly[0][0], poly[0][1]); ctx.lineTo(poly[1][0], poly[1][1]); ctx.stroke();
-        ctx.restore();
-      } else {
-        drawStructPoly(ctx, poly, 'rgba(255,204,128,0.75)', '#FFA726', sw);
-      }
-    }
+    // 창문 오버레이
     for (const poly of windows) {
       if (poly.length === 2) {
         ctx.save();
@@ -318,7 +308,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────
 export default function FloorPlan2D({ data, imageUrl }) {
-  const { imgWidth: W, imgHeight: H, walls, windows, doors, rooms } = data;
+  const { imgWidth: W, imgHeight: H, walls, windows, rooms } = data;
   const canvasRef = useRef(null);
   const [hovered, setHovered]     = useState(null);
   const [loadedImg, setLoadedImg] = useState(null);
@@ -385,7 +375,7 @@ export default function FloorPlan2D({ data, imageUrl }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, img: loadedImg, hoveredSet, viewStyle });
+    renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, walls, img: loadedImg, hoveredSet, viewStyle });
   }, [roomPolys, svgEdges, windows, doors, walls, loadedImg, hoveredSet, viewStyle, W, H]);
 
   return (
@@ -483,7 +473,6 @@ export default function FloorPlan2D({ data, imageUrl }) {
           {[
             { color: STRUCT_COLORS['구조_벽체'], label: '벽체', count: walls.length },
             { color: '#64B5F6', label: '창문', count: windows.length },
-            { color: '#FFA726', label: '문',   count: doors.length },
           ].map(item => (
             <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <div style={{ width: 10, height: 10, borderRadius: 3, background: item.color, flexShrink: 0 }} />

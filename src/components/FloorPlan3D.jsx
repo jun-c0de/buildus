@@ -405,14 +405,42 @@ function Scene({ data }) {
     }
     return Object.entries(segs)
       .filter(([k]) => {
-        if (counts[k] === 1) return true; // 외벽은 항상 표시
-        // 공유 엣지: 오픈플랜 그룹 내부면 숨김
+        if (counts[k] === 1) return true;
         const names = edgeRooms[k] ?? [];
         const isOpenPlan = OPEN_PLAN_GROUPS.some(g => names.every(n => g.includes(n)));
         return !isOpenPlan;
       })
       .map(([k,{p1,p2}])=>({p1,p2,isExterior:counts[k]===1}));
   }, [rooms, W, H, openPlanMap]);
+
+  // 외곽 윤곽선 폴리곤 (배경을 아파트 형태로)
+  const outerPoly = useMemo(() => {
+    const extSegs = wallSegs.filter(s => s.isExterior);
+    if (extSegs.length < 3) return null;
+    try {
+      const kp = ([x, y]) => `${Math.round(x * 8)},${Math.round(y * 8)}`;
+      const adj = new Map();
+      for (const { p1, p2 } of extSegs) {
+        const k1 = kp(p1), k2 = kp(p2);
+        if (!adj.has(k1)) adj.set(k1, { pt: p1, neighbors: [] });
+        if (!adj.has(k2)) adj.set(k2, { pt: p2, neighbors: [] });
+        adj.get(k1).neighbors.push(k2);
+        adj.get(k2).neighbors.push(k1);
+      }
+      const start = adj.keys().next().value;
+      const visited = new Set([start]);
+      const poly = [adj.get(start).pt];
+      let cur = start;
+      for (let i = 0; i < extSegs.length * 2; i++) {
+        const next = adj.get(cur).neighbors.find(n => !visited.has(n));
+        if (!next) break;
+        visited.add(next);
+        poly.push(adj.get(next).pt);
+        cur = next;
+      }
+      return poly.length >= 3 ? poly : null;
+    } catch { return null; }
+  }, [wallSegs]);
 
   // 등각투영 카메라 위치 (아파트 우상단 45도)
   const isoX = bounds.cx + (bounds.w*0.6 + 10);
@@ -446,11 +474,18 @@ function Scene({ data }) {
       <directionalLight position={[bounds.cx-8, 12, bounds.cz-6]} intensity={0.28} color="#DDE8F8" />
       <hemisphereLight skyColor="#D8EAF8" groundColor="#EDE8E0" intensity={0.38} />
 
-      {/* 배경 바닥 */}
-      <mesh rotation={[-Math.PI/2,0,0]} position={[bounds.cx,-0.01,bounds.cz]} receiveShadow>
-        <planeGeometry args={[bounds.w+2.5, bounds.d+2.5]} />
-        <meshStandardMaterial color="#EDE9E3" roughness={0.94} />
-      </mesh>
+      {/* 배경 바닥 — 아파트 외곽 형태 */}
+      {outerPoly ? (
+        <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.01,0]} receiveShadow>
+          <shapeGeometry args={[makeShape(outerPoly)]} />
+          <meshStandardMaterial color="#EDE9E3" roughness={0.94} />
+        </mesh>
+      ) : (
+        <mesh rotation={[-Math.PI/2,0,0]} position={[bounds.cx,-0.01,bounds.cz]} receiveShadow>
+          <planeGeometry args={[bounds.w+2.5, bounds.d+2.5]} />
+          <meshStandardMaterial color="#EDE9E3" roughness={0.94} />
+        </mesh>
+      )}
 
       {/* 방 바닥 */}
       {rooms.map((r,i) => <Room key={i} room={r} W={W} H={H} />)}
