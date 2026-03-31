@@ -41,7 +41,7 @@ SKIP_CATS = {'background', '구조_벽체', '구조_창호', '구조_출입문'}
 # 작은 방 카테고리 (fallback 매칭 허용)
 SMALL_ROOM_CATS = {'공간_화장실', '공간_욕실', '공간_현관', '공간_실외기실', '공간_드레스룸'}
 
-# 룸타입별 최대 면적 비율 (이미지 대비) — 너무 큰 마스크로 잘못 매칭 방지
+# 룸타입별 기본 최대 면적 비율 (참조 도면 없을 때 사용)
 ROOM_MAX_AREA_PCT = {
     '공간_거실':       0.28,
     '공간_침실':       0.18,
@@ -54,6 +54,27 @@ ROOM_MAX_AREA_PCT = {
     '공간_실외기실':   0.04,
     '공간_다목적공간': 0.14,
 }
+
+def load_reference_constraints(ref_spa_path: Path):
+    """참조 도면(수동 annotation)에서 룸별 면적 비율 제약 자동 추출"""
+    spa = json.loads(ref_spa_path.read_text(encoding='utf-8'))
+    img = spa['images'][0]
+    img_area = img['width'] * img['height']
+    cats = {c['id']: c['name'] for c in spa['categories']}
+    room_areas = {}
+    for ann in spa['annotations']:
+        cat = cats.get(ann['category_id'], '')
+        if cat in SKIP_CATS or cat == 'background': continue
+        pct = ann['area'] / img_area
+        room_areas.setdefault(cat, []).append(pct)
+    # 실측 최대값의 3배까지 허용 (큰 타입 대응), 최소 0.3%
+    constraints = {}
+    for cat, areas in room_areas.items():
+        constraints[cat] = min(max(areas) * 3.0, 0.50)
+    print(f'  [참조] {ref_spa_path.name} → {len(constraints)}개 제약 로드')
+    for cat, mx in sorted(constraints.items()):
+        print(f'    {cat}: max={mx*100:.1f}%')
+    return constraints
 
 def text_to_cat(text):
     t = text.replace(' ', '')
@@ -184,7 +205,7 @@ def poly_overlap_ratio(flat_a, flat_b, W, H):
     return inter / area_a if area_a > 0 else 0
 
 # ── spa.json 업데이트 ──────────────────────────────────────────────
-def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
+def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run, ref_constraints=None):
     spa         = json.loads(spa_path.read_text(encoding='utf-8'))
     cat_by_name = {c['name']: c['id'] for c in spa['categories']}
     cat_by_id   = {c['id']: c['name'] for c in spa['categories']}
@@ -231,7 +252,9 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
         cx, cy, cat, text = room['cx'], room['cy'], room['cat'], room['text']
 
         # point-in-polygon 매칭 (룸타입별 최대 면적 제한 적용)
-        max_pct = ROOM_MAX_AREA_PCT.get(cat, 0.50)
+        # 참조 도면 제약 우선, 없으면 기본값
+        max_pct = (ref_constraints or ROOM_MAX_AREA_PCT).get(cat,
+                   ROOM_MAX_AREA_PCT.get(cat, 0.50))
         matched = None
         for pi, rp in enumerate(room_polys):
             if pi in used_poly: continue
@@ -417,7 +440,59 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
             changes += 1
             break  # 현관은 보통 1개
 
-    # ── 4단계: 주방 내 싱크대/가스레인지 자동 감지 ───────────────
+    # ── 4단계: 드레스룸 감지 (침실 bbox 인접 소형 미사용 마스크) ──────
+    # 드레스룸은 OCR 텍스트 없이 도면에 표시되는 경우가 많음
+    # 조건: 침실 bbox에서 40px 이내 + 면적 0.2%~6% + 무채색(S<60) 또는 미라벨
+    if not any(cat_by_id.get(a.get('category_id')) == '공간_드레스룸' for a in new_anns):
+        dress_max_pct = (ref_constraints or {}).get('공간_드레스룸', ROOM_MAX_AREA_PCT.get('공간_드레스룸', 0.08))
+        bedroom_bboxes = [a['bbox'] for a in new_anns
+                          if cat_by_id.get(a.get('category_id')) == '공간_침실']
+        dress_candidates = []
+        for pi, rp in enumerate(room_polys):
+            if pi in used_poly: continue
+            if not (img_area * 0.002 <= rp['area'] <= img_area * dress_max_pct): continue
+            bx, by, bw, bh = rp['bbox']
+            mcx, mcy = bx + bw//2, by + bh//2
+            margin = 40
+            for bb in bedroom_bboxes:
+                if (bb[0]-margin <= mcx <= bb[0]+bb[2]+margin and
+                        bb[1]-margin <= mcy <= bb[1]+bb[3]+margin):
+                    # 화장실 하늘색이 아닌 것만 (화장실과 구분)
+                    mask_2d = rp['seg']
+                    is_sky = False
+                    if mask_2d.shape == (H, W):
+                        region_s = hsv_img[:,:,1][mask_2d]
+                        region_h = hsv_img[:,:,0][mask_2d]
+                        if len(region_h) > 0:
+                            sky_r = float(np.mean((region_h >= 85) & (region_h <= 130) & (region_s >= 8) & (region_s <= 120)))
+                            is_sky = sky_r >= 0.10
+                    if not is_sky:
+                        dress_candidates.append((pi, rp))
+                    break
+
+        if dress_candidates:
+            dress_candidates.sort(key=lambda x: x[1]['area'])
+            pi, rp = dress_candidates[0]
+            used_poly.add(pi)
+            flat = rp['poly']
+            xs = flat[0::2]; ys = flat[1::2]
+            x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+            log.append(f'  추가(침실인접): 공간_드레스룸 area={rp["area"]}px')
+            if not dry_run:
+                new_anns.append({
+                    'id': 0,
+                    'category_id': ensure_cat('공간_드레스룸'),
+                    'image_id': spa['images'][0]['id'],
+                    'segmentation': [flat],
+                    'area': rp['area'],
+                    'bbox': [x0, y0, x1-x0, y1-y0],
+                    'iscrowd': 0,
+                    'room_name': '드레스룸',
+                    'area_m2': round(rp['area']/10000, 1),
+                })
+            changes += 1
+
+    # ── 5단계: 주방 내 싱크대/가스레인지 자동 감지 ───────────────
     kitchen_poly = next(
         (a for a in new_anns
          if cat_by_id.get(a.get('category_id'), cat_by_name.get('공간_주방')) == cat_by_name.get('공간_주방')),
@@ -510,7 +585,14 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
 def main():
     args    = sys.argv[1:]
     dry_run = '--dry-run' in args
-    filter_ = next((a for a in args if not a.startswith('--')), None)
+
+    # --reference 135  →  같은 단지 내 135_spa.json을 참조 도면으로 사용
+    ref_stem = None
+    for i, a in enumerate(args):
+        if a == '--reference' and i+1 < len(args):
+            ref_stem = args[i+1]; break
+    positional = [a for a in args if not a.startswith('--') and a != ref_stem]
+    filter_ = positional[0] if positional else None
 
     if not API_KEY:
         print('GOOGLE_VISION_KEY 없음'); sys.exit(1)
@@ -518,6 +600,8 @@ def main():
         print(f'체크포인트 없음: {CHECKPOINT}'); sys.exit(1)
     if dry_run:
         print('[DRY RUN]\n')
+    if ref_stem:
+        print(f'[참조 도면] {ref_stem}_spa.json 을 면적 제약 기준으로 사용\n')
 
     complexes = sorted(BASE.iterdir())
     if filter_:
@@ -526,8 +610,23 @@ def main():
     done = skip = err = 0
     for cx_dir in complexes:
         if not cx_dir.is_dir(): continue
+
+        # 같은 단지 내 참조 도면 로드
+        ref_constraints = None
+        if ref_stem:
+            ref_path = cx_dir / f'{ref_stem}_spa.json'
+            if ref_path.exists():
+                ref_constraints = load_reference_constraints(ref_path)
+            else:
+                print(f'  [경고] 참조 도면 없음: {ref_path}')
+
         for spa_path in sorted(cx_dir.glob('*_spa.json')):
-            stem     = spa_path.stem.replace('_spa', '')
+            stem = spa_path.stem.replace('_spa', '')
+            # 참조 도면 자체는 다시 처리 안 함
+            if ref_stem and stem == ref_stem:
+                print(f'  [스킵] 참조 도면: {spa_path.name}')
+                skip += 1; continue
+
             img_path = cx_dir / f'{stem}.jpg'
             if not img_path.exists():
                 img_path = cx_dir / f'{stem}.jpeg'
@@ -541,7 +640,7 @@ def main():
                 print(f'  OCR: {[r["text"] for r in ocr_rooms]}')
                 print('  SAM2...')
                 masks, W, H = generate_masks(img_path)
-                changes, log = update_spa(spa_path, masks, W, H, ocr_rooms, dry_run)
+                changes, log = update_spa(spa_path, masks, W, H, ocr_rooms, dry_run, ref_constraints)
                 print(f'  -> {changes}개 추가')
                 for l in log: print(l)
                 done += 1
