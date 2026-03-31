@@ -41,6 +41,20 @@ SKIP_CATS = {'background', '구조_벽체', '구조_창호', '구조_출입문'}
 # 작은 방 카테고리 (fallback 매칭 허용)
 SMALL_ROOM_CATS = {'공간_화장실', '공간_욕실', '공간_현관', '공간_실외기실', '공간_드레스룸'}
 
+# 룸타입별 최대 면적 비율 (이미지 대비) — 너무 큰 마스크로 잘못 매칭 방지
+ROOM_MAX_AREA_PCT = {
+    '공간_거실':       0.28,
+    '공간_침실':       0.18,
+    '공간_주방':       0.20,
+    '공간_발코니':     0.10,
+    '공간_화장실':     0.05,
+    '공간_욕실':       0.06,
+    '공간_현관':       0.06,
+    '공간_드레스룸':   0.08,
+    '공간_실외기실':   0.04,
+    '공간_다목적공간': 0.14,
+}
+
 def text_to_cat(text):
     t = text.replace(' ', '')
     for kws, cat in ROOM_RULES:
@@ -216,10 +230,12 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
     for room in ocr_rooms:
         cx, cy, cat, text = room['cx'], room['cy'], room['cat'], room['text']
 
-        # point-in-polygon 매칭
+        # point-in-polygon 매칭 (룸타입별 최대 면적 제한 적용)
+        max_pct = ROOM_MAX_AREA_PCT.get(cat, 0.50)
         matched = None
         for pi, rp in enumerate(room_polys):
             if pi in used_poly: continue
+            if rp['area'] / img_area > max_pct: continue  # 너무 큰 마스크 스킵
             if point_in_polygon(cx, cy, rp['poly']):
                 matched = (pi, rp); break
 
@@ -302,53 +318,28 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
                 })
             changes += 1
 
-    # ── 3단계: 현관 감지 (출입문 인접 마스크) ────────────────────
-    # str.json에서 출입문 좌표 가져오기
-    str_path = spa_path.parent / spa_path.name.replace('_spa.json', '_str.json')
-    door_centers = []
-    if str_path.exists():
-        str_data   = json.loads(str_path.read_text(encoding='utf-8'))
-        str_cats   = {c['id']: c['name'] for c in str_data.get('categories', [])}
-        for ann in str_data.get('annotations', []):
-            if str_cats.get(ann['category_id'], '') == '구조_출입문':
-                seg = ann.get('segmentation', [[]])[0]
-                if len(seg) >= 2:
-                    xs = seg[0::2]; ys = seg[1::2]
-                    door_centers.append((
-                        round((min(xs)+max(xs))/2),
-                        round((min(ys)+max(ys))/2)
-                    ))
-
-    if door_centers:
-        # 중복 문 제거 (40px 이내 = 동일 문)
-        unique_doors = []
-        for d in door_centers:
-            if not any(((d[0]-u[0])**2+(d[1]-u[1])**2)**0.5 < 40 for u in unique_doors):
-                unique_doors.append(d)
-
-        # 모든 고유 문 인근(150px) 미매칭 마스크 수집
-        # 현관은 드레스룸보다 작음 → 가장 작은 마스크 선택 (면적 우선)
-        # 동일 마스크 중복 방지 (여러 문에서 같은 마스크 후보 등장 가능)
-        cand_map = {}  # pi -> (pi, rp, min_dist)
-        for pi, rp in enumerate(room_polys):
-            if pi in used_poly: continue
-            bx, by, bw, bh = rp['bbox']
-            mcx, mcy = bx+bw//2, by+bh//2
-            # 현관 크기 제한: img_area 의 0.3%~8% (너무 크면 드레스룸/침실)
-            if not (img_area * 0.003 <= rp['area'] <= img_area * 0.08):
-                continue
-            min_d = min(((mcx-dx)**2+(mcy-dy)**2)**0.5 for dx,dy in unique_doors)
-            if min_d < 150:
-                cand_map[pi] = (pi, rp, min_d)
-
-        if cand_map:
-            candidates = sorted(cand_map.values(), key=lambda x: x[1]['area'])
-            pi, rp, d = candidates[0]
+    # ── 3단계: 현관 감지 (흰색/회색 번갈아 타일 패턴)  ──────────────
+    # 현관은 무채색(S<50) + 중간밝기(V:100-235) + 높은 V 분산(번갈아 패턴)
+    for pi, rp in enumerate(room_polys):
+        if pi in used_poly: continue
+        # 현관 크기: 이미지의 0.3%~7%
+        if not (img_area * 0.003 <= rp['area'] <= img_area * 0.07):
+            continue
+        mask_2d = rp['seg']
+        if mask_2d.shape != (H, W):
+            continue
+        region_s = hsv_img[:,:,1][mask_2d]
+        region_v = hsv_img[:,:,2][mask_2d]
+        if len(region_s) < 50: continue
+        # 무채색 비율: S<50, V 100~235 (밝은 회색~흰색)
+        tile_ratio = float(np.mean((region_s < 50) & (region_v >= 100) & (region_v <= 235)))
+        v_std      = float(np.std(region_v))
+        if tile_ratio >= 0.45 and v_std >= 15:
             used_poly.add(pi)
             flat = rp['poly']
             xs = flat[0::2]; ys = flat[1::2]
             x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
-            log.append(f'  추가(출입문인접): 공간_현관 dist={d:.0f}px area={rp["area"]}px')
+            log.append(f'  추가(타일감지): 공간_현관 tile={tile_ratio:.2f} v_std={v_std:.1f} area={rp["area"]}px')
             if not dry_run:
                 new_anns.append({
                     'id': 0,
@@ -362,6 +353,7 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
                     'area_m2': round(rp['area']/10000, 1),
                 })
             changes += 1
+            break  # 현관은 보통 1개
 
     # ── 4단계: 주방 내 싱크대/가스레인지 자동 감지 ───────────────
     kitchen_poly = next(
@@ -417,6 +409,31 @@ def update_spa(spa_path: Path, masks, W, H, ocr_rooms, dry_run):
                     'area_m2': round(rp['area']/10000, 1),
                 })
             changes += 1
+
+    # ── 중복 제거: 같은 카테고리 + bbox 50% 이상 겹침 → 큰 것 유지 ───
+    def bbox_overlap(b1, b2):
+        x1 = max(b1[0], b2[0]); y1 = max(b1[1], b2[1])
+        x2 = min(b1[0]+b1[2], b2[0]+b2[2]); y2 = min(b1[1]+b1[3], b2[1]+b2[3])
+        if x2 <= x1 or y2 <= y1: return 0.0
+        inter = (x2-x1)*(y2-y1)
+        smaller = min(b1[2]*b1[3], b2[2]*b2[3])
+        return inter / smaller if smaller > 0 else 0.0
+
+    room_only = [a for a in new_anns if cat_by_id.get(a.get('category_id',''),'') not in SKIP_CATS
+                 and not cat_by_id.get(a.get('category_id',''),'').startswith('구조_')]
+    to_remove = set()
+    for i in range(len(room_only)):
+        if id(room_only[i]) in to_remove: continue
+        for j in range(i+1, len(room_only)):
+            if id(room_only[j]) in to_remove: continue
+            a, b = room_only[i], room_only[j]
+            if cat_by_id.get(a.get('category_id')) != cat_by_id.get(b.get('category_id')): continue
+            if not a.get('bbox') or not b.get('bbox'): continue
+            if bbox_overlap(a['bbox'], b['bbox']) > 0.50:
+                smaller = b if (a.get('area',0) >= b.get('area',0)) else a
+                to_remove.add(id(smaller))
+                log.append(f'  중복제거: {cat_by_id.get(a.get("category_id"))} area={smaller.get("area")}px')
+    new_anns = [a for a in new_anns if id(a) not in to_remove]
 
     # ann id 재부여
     if not dry_run:
