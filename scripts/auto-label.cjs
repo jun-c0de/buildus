@@ -177,13 +177,15 @@ function applySpaUpdate(spaPath, ocrRooms, dryRun) {
     if (existingCats.has(room.cat)) continue;
 
     // 텍스트 bbox를 방 크기로 확장해 폴리곤 생성
+    // 이미지 크기 기준으로 방 1개 = 약 15~20% 너비/높이로 제한
     const { x0, y0, x1, y1 } = room.bbox;
     const tw = x1 - x0, th = y1 - y0;
-    const pad = Math.max(tw, th) * 1.5;
+    const maxPad = Math.min(W * 0.10, H * 0.12); // 이미지 크기의 10~12% 이내
+    const pad = Math.min(Math.max(tw, th) * 1.0, maxPad);
     const nx1 = Math.max(0, Math.round(x0 - pad));
     const ny1 = Math.max(0, Math.round(y0 - pad));
     const nx2 = Math.min(W, Math.round(x1 + pad));
-    const ny2 = Math.min(H, Math.round(y1 + pad * 2.0));
+    const ny2 = Math.min(H, Math.round(y1 + pad));
     if ((nx2-nx1) < 30 || (ny2-ny1) < 30) continue;
 
     log.push(`  추가: ${room.cat} "${room.text}" [${nx1},${ny1} ~ ${nx2},${ny2}]`);
