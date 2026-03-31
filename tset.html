@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도면 단일 HTML 테스트</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .panel, .viewer {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .panel {
+      padding: 16px;
+      overflow: auto;
+    }
+    .viewer {
+      padding: 12px;
+      overflow: auto;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+    .desc {
+      margin: 0;
+      color: #4b5563;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .section {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .stack { display: grid; gap: 8px; }
+    input[type="file"], select, textarea, input[type="range"] {
+      width: 100%;
+    }
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #111827;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #374151;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+    }
+    .muted { color: #6b7280; font-size: 12px; }
+    .coords {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #374151;
+    }
+    @media (max-width: 960px) {
+      .app { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>도면 단일 HTML 테스트</h1>
+      <p class="desc">
+        이미지 업로드, 그리드, 좌표 확인, 샘플 오버레이, 간단한 전처리, 외곽 자동 정렬,
+        그리고 JSON 렌더링 구조를 한 파일에서 테스트하는 버전입니다.
+      </p>
+
+      <div class="section">
+        <label class="label" for="fileInput">도면 이미지 업로드</label>
+        <input id="fileInput" type="file" accept="image/*" />
+        <div id="fileName" class="muted" style="margin-top:8px;">선택된 파일 없음</div>
+      </div>
+
+      <div class="section stack">
+        <label class="row"><span>원본 이미지</span><input id="showImage" type="checkbox" checked /></label>
+        <label class="row"><span>그리드</span><input id="showGrid" type="checkbox" checked /></label>
+        <label class="row"><span>샘플 벽선</span><input id="showWalls" type="checkbox" checked /></label>
+        <label class="row"><span>샘플 방 박스</span><input id="showRooms" type="checkbox" checked /></label>
+        <label class="row"><span>샘플 치수선</span><input id="showDimensions" type="checkbox" checked /></label>
+        <label class="row"><span>클릭 좌표 표시</span><input id="showClicks" type="checkbox" checked /></label>
+        <label class="row"><span>정렬 프레임 표시</span><input id="showFrame" type="checkbox" checked /></label>
+        <label class="row"><span>추출 벽 구조 표시</span><input id="showBuiltWalls" type="checkbox" checked /></label>
+        <label class="row"><span>방 후보 표시</span><input id="showRoomCandidates" type="checkbox" checked /></label>
+      </div>
+
+      <div class="section">
+        <label class="label" for="gridSize">그리드 크기: <span id="gridValue">24</span>px</label>
+        <input id="gridSize" type="range" min="8" max="60" value="24" />
+      </div>
+
+      <div class="section">
+        <div class="button-row">
+          <button id="btnThreshold" type="button">흑백 전처리</button>
+          <button id="btnResetImage" class="secondary" type="button">원본 복귀</button>
+        </div>
+        <div class="button-row" style="margin-top:8px;">
+          <button id="btnDetectFrame" type="button">외곽 자동 정렬</button>
+          <button id="btnResetFrame" class="secondary" type="button">정렬 해제</button>
+        </div>
+        <div class="button-row" style="margin-top:8px;">
+          <button id="btnDetectLines" type="button">선 후보 추출</button>
+          <button id="btnResetLines" class="secondary" type="button">선 후보 초기화</button>
+        </div>
+        <div class="button-row" style="margin-top:8px;">
+          <button id="btnBuildWalls" type="button">벽 구조 생성</button>
+          <button id="btnResetBuiltWalls" class="secondary" type="button">벽 구조 초기화</button>
+        </div>
+        <div class="button-row" style="margin-top:8px;">
+          <button id="btnFindRooms" type="button">방 후보 생성</button>
+          <button id="btnResetRooms" class="secondary" type="button">방 후보 초기화</button>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="label" for="detectStrength">선 검출 강도: <span id="detectStrengthValue">2</span></label>
+          <input id="detectStrength" type="range" min="1" max="4" value="2" />
+        </div>
+        <div id="detectInfo" class="muted" style="margin-top:8px;">
+          외곽 굵은 선을 찾아 샘플 오버레이를 1차 정렬하고, 간단한 수평/수직 선 후보를 추출하는 테스트입니다.
+        </div>
+      </div>
+
+      <div class="section">
+        <label class="label" for="roomSelect">방 선택</label>
+        <select id="roomSelect"></select>
+      </div>
+
+      <div class="section">
+        <div class="card">
+          <strong>선택된 객체</strong>
+          <div id="roomInfo" style="margin-top:8px;">선택 없음</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card">
+          <strong>마지막 클릭 좌표</strong>
+          <div id="clickInfo" class="coords" style="margin-top:8px;">없음</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <label class="label" for="jsonInput">오버레이 JSON</label>
+        <textarea id="jsonInput"></textarea>
+        <div class="button-row" style="margin-top:8px;">
+          <button id="applyJson" type="button">JSON 적용</button>
+          <button id="resetJson" class="secondary" type="button">샘플 복원</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="viewer">
+      <canvas id="canvas"></canvas>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const roomSelect = document.getElementById('roomSelect');
+    const roomInfo = document.getElementById('roomInfo');
+    const clickInfo = document.getElementById('clickInfo');
+    const gridSlider = document.getElementById('gridSize');
+    const gridValue = document.getElementById('gridValue');
+    const jsonInput = document.getElementById('jsonInput');
+    const detectInfo = document.getElementById('detectInfo');
+    const detectStrength = document.getElementById('detectStrength');
+    const detectStrengthValue = document.getElementById('detectStrengthValue');
+
+    const controls = {
+      showImage: document.getElementById('showImage'),
+      showGrid: document.getElementById('showGrid'),
+      showWalls: document.getElementById('showWalls'),
+      showRooms: document.getElementById('showRooms'),
+      showDimensions: document.getElementById('showDimensions'),
+      showClicks: document.getElementById('showClicks'),
+      showFrame: document.getElementById('showFrame'),
+      showBuiltWalls: document.getElementById('showBuiltWalls'),
+      showRoomCandidates: document.getElementById('showRoomCandidates')
+    };
+
+    const DEFAULT_DATA = {
+      walls: [
+        { x1: 170, y1: 95, x2: 555, y2: 95 },
+        { x1: 555, y1: 95, x2: 555, y2: 500 },
+        { x1: 555, y1: 500, x2: 170, y2: 500 },
+        { x1: 170, y1: 500, x2: 170, y2: 95 },
+        { x1: 300, y1: 145, x2: 300, y2: 360 },
+        { x1: 430, y1: 145, x2: 430, y2: 360 },
+        { x1: 240, y1: 265, x2: 510, y2: 265 },
+        { x1: 240, y1: 360, x2: 510, y2: 360 }
+      ],
+      rooms: [
+        { id: 'kitchen', name: '주방 및 식당', area: '14.21', x: 305, y: 150, w: 120, h: 110 },
+        { id: 'bed1', name: '침실', area: '10.78', x: 430, y: 150, w: 95, h: 110 },
+        { id: 'living', name: '거실', area: '29.75', x: 300, y: 265, w: 130, h: 95 },
+        { id: 'bed2', name: '침실', area: '14.74', x: 175, y: 315, w: 120, h: 110 },
+        { id: 'bed3', name: '침실', area: '15.87', x: 430, y: 315, w: 120, h: 110 },
+        { id: 'dress', name: '드레스룸', area: '', x: 430, y: 265, w: 95, h: 45 }
+      ],
+      dimensions: [
+        { id: 'top_total', text: '10870', x1: 165, y1: 55, x2: 555, y2: 55, dir: 'h' },
+        { id: 'bottom_total', text: '13470', x1: 90, y1: 555, x2: 610, y2: 555, dir: 'h' },
+        { id: 'right_total', text: '12750', x1: 590, y1: 95, x2: 590, y2: 500, dir: 'v' },
+        { id: 'living_w', text: '4990', x1: 300, y1: 525, x2: 430, y2: 525, dir: 'h' }
+      ]
+    };
+
+    let overlayData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    let selectedRoom = 'living';
+    let uploadedImage = null;
+    let displayImage = null;
+    let lastClick = null;
+    let detectedFrame = null;
+    let detectedLines = [];
+    let builtWalls = [];
+    let roomCandidates = [];
+
+    const BASE_OVERLAY_WIDTH = 900;
+    const BASE_OVERLAY_HEIGHT = 700;
+    const BASE_FRAME = {
+      left: 90,
+      top: 55,
+      right: 610,
+      bottom: 555
+    };
+
+    function sx(x) {
+      if (detectedFrame) {
+        const t = (x - BASE_FRAME.left) / (BASE_FRAME.right - BASE_FRAME.left);
+        return detectedFrame.left + t * (detectedFrame.right - detectedFrame.left);
+      }
+      return x * (canvas.width / BASE_OVERLAY_WIDTH);
+    }
+
+    function sy(y) {
+      if (detectedFrame) {
+        const t = (y - BASE_FRAME.top) / (BASE_FRAME.bottom - BASE_FRAME.top);
+        return detectedFrame.top + t * (detectedFrame.bottom - detectedFrame.top);
+      }
+      return y * (canvas.height / BASE_OVERLAY_HEIGHT);
+    }
+
+    function sw(w) {
+      if (detectedFrame) {
+        return w * ((detectedFrame.right - detectedFrame.left) / (BASE_FRAME.right - BASE_FRAME.left));
+      }
+      return w * (canvas.width / BASE_OVERLAY_WIDTH);
+    }
+
+    function sh(h) {
+      if (detectedFrame) {
+        return h * ((detectedFrame.bottom - detectedFrame.top) / (BASE_FRAME.bottom - BASE_FRAME.top));
+      }
+      return h * (canvas.height / BASE_OVERLAY_HEIGHT);
+    }
+
+    function syncJsonEditor() {
+      jsonInput.value = JSON.stringify(overlayData, null, 2);
+    }
+
+    function populateRoomSelect() {
+      roomSelect.innerHTML = '';
+      overlayData.rooms.forEach((room) => {
+        const option = document.createElement('option');
+        option.value = room.id;
+        option.textContent = room.name + (room.area ? ` (${room.area})` : '');
+        roomSelect.appendChild(option);
+      });
+      if (!overlayData.rooms.find(r => r.id === selectedRoom)) {
+        selectedRoom = overlayData.rooms[0] ? overlayData.rooms[0].id : '';
+      }
+      roomSelect.value = selectedRoom;
+    }
+
+    function updateRoomInfo() {
+      const room = overlayData.rooms.find(r => r.id === selectedRoom);
+      if (!room) {
+        roomInfo.textContent = '선택 없음';
+        return;
+      }
+      roomInfo.innerHTML =
+        '이름: ' + room.name + '<br>' +
+        '면적: ' + (room.area || '-') + '<br>' +
+        '기준 박스: x=' + room.x + ', y=' + room.y + ', w=' + room.w + ', h=' + room.h + '<br>' +
+        '표시 박스: x=' + Math.round(sx(room.x)) + ', y=' + Math.round(sy(room.y)) +
+        ', w=' + Math.round(sw(room.w)) + ', h=' + Math.round(sh(room.h));
+    }
+
+    function updateClickInfo() {
+      if (!lastClick) {
+        clickInfo.textContent = '없음';
+        return;
+      }
+      clickInfo.textContent = 'x=' + Math.round(lastClick.x) + ', y=' + Math.round(lastClick.y);
+    }
+
+    function updateDetectInfo(message) {
+      if (message) {
+        detectInfo.textContent = message;
+        return;
+      }
+      if (detectedFrame) {
+        detectInfo.textContent =
+          '외곽 자동 정렬 적용됨: left=' + Math.round(detectedFrame.left) +
+          ', top=' + Math.round(detectedFrame.top) +
+          ', right=' + Math.round(detectedFrame.right) +
+          ', bottom=' + Math.round(detectedFrame.bottom);
+      } else {
+        detectInfo.textContent = '외곽 굵은 선을 찾아 샘플 오버레이를 1차 정렬하는 테스트입니다.';
+      }
+    }
+
+    function ensureCanvasSize() {
+      if (displayImage) {
+        canvas.width = displayImage.width;
+        canvas.height = displayImage.height;
+      } else {
+        canvas.width = 900;
+        canvas.height = 700;
+      }
+    }
+
+    function drawGrid(width, height, gridSize) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawWalls(lines) {
+      ctx.save();
+      ctx.strokeStyle = '#111827';
+      ctx.lineWidth = Math.max(2, sw(4));
+      lines.forEach((l) => {
+        ctx.beginPath();
+        ctx.moveTo(sx(l.x1), sy(l.y1));
+        ctx.lineTo(sx(l.x2), sy(l.y2));
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawRooms(rooms) {
+      ctx.save();
+      rooms.forEach((r) => {
+        const selected = r.id === selectedRoom;
+        const rx = sx(r.x);
+        const ry = sy(r.y);
+        const rw = sw(r.w);
+        const rh = sh(r.h);
+        ctx.fillStyle = selected ? 'rgba(59,130,246,0.22)' : 'rgba(245,158,11,0.14)';
+        ctx.strokeStyle = selected ? 'rgba(37,99,235,1)' : 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = selected ? 2.5 : 1;
+        ctx.fillRect(rx, ry, rw, rh);
+        ctx.strokeRect(rx, ry, rw, rh);
+        ctx.fillStyle = '#111827';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold ' + Math.max(11, Math.round(sw(14))) + 'px sans-serif';
+        ctx.fillText(r.name, rx + rw / 2, ry + rh / 2 - 4);
+        if (r.area) {
+          ctx.font = Math.max(10, Math.round(sw(12))) + 'px sans-serif';
+          ctx.fillText(r.area, rx + rw / 2, ry + rh / 2 + 16);
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawDimensions(dimensions) {
+      ctx.save();
+      ctx.strokeStyle = '#2563eb';
+      ctx.fillStyle = '#1d4ed8';
+      ctx.lineWidth = Math.max(1, sw(1.5));
+      ctx.font = Math.max(10, Math.round(sw(12))) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      dimensions.forEach((d) => {
+        const x1 = sx(d.x1);
+        const y1 = sy(d.y1);
+        const x2 = sx(d.x2);
+        const y2 = sy(d.y2);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        if (d.dir === 'h') {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1 - 6);
+          ctx.lineTo(x1, y1 + 6);
+          ctx.moveTo(x2, y2 - 6);
+          ctx.lineTo(x2, y2 + 6);
+          ctx.stroke();
+          ctx.fillText(d.text, (x1 + x2) / 2, y1 - 8);
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(x1 - 6, y1);
+          ctx.lineTo(x1 + 6, y1);
+          ctx.moveTo(x2 - 6, y2);
+          ctx.lineTo(x2 + 6, y2);
+          ctx.stroke();
+          ctx.save();
+          ctx.translate(x1 + 18, (y1 + y2) / 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.fillText(d.text, 0, 0);
+          ctx.restore();
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawClickMarker() {
+      if (!controls.showClicks.checked || !lastClick) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 1;
+      ctx.moveTo(lastClick.x - 8, lastClick.y);
+      ctx.lineTo(lastClick.x + 8, lastClick.y);
+      ctx.moveTo(lastClick.x, lastClick.y - 8);
+      ctx.lineTo(lastClick.x, lastClick.y + 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawDetectedFrame() {
+      if (!controls.showFrame.checked || !detectedFrame) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(16,185,129,0.95)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.strokeRect(
+        detectedFrame.left,
+        detectedFrame.top,
+        detectedFrame.right - detectedFrame.left,
+        detectedFrame.bottom - detectedFrame.top
+      );
+      ctx.restore();
+    }
+
+    function drawDetectedLines() {
+      if (!detectedLines.length) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(239,68,68,0.95)';
+      ctx.lineWidth = 2;
+      detectedLines.forEach((line) => {
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawBuiltWalls() {
+      if (!controls.showBuiltWalls.checked || !builtWalls.length) return;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(34,197,94,0.95)';
+      ctx.lineWidth = 4;
+      builtWalls.forEach((line) => {
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawRoomCandidates() {
+      if (!controls.showRoomCandidates.checked || !roomCandidates.length) return;
+      ctx.save();
+      roomCandidates.forEach((room, idx) => {
+        ctx.fillStyle = 'rgba(59,130,246,0.14)';
+        ctx.strokeStyle = 'rgba(37,99,235,0.95)';
+        ctx.lineWidth = 2;
+        ctx.fillRect(room.x, room.y, room.w, room.h);
+        ctx.strokeRect(room.x, room.y, room.w, room.h);
+        ctx.fillStyle = '#1d4ed8';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('R' + (idx + 1), room.x + 6, room.y + 14);
+      });
+      ctx.restore();
+    }
+
+    function render() {
+      ensureCanvasSize();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (controls.showImage.checked && displayImage) {
+        ctx.drawImage(displayImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      if (controls.showGrid.checked) {
+        drawGrid(canvas.width, canvas.height, Number(gridSlider.value));
+      }
+
+      if (uploadedImage) {
+        if (controls.showWalls.checked) drawWalls(overlayData.walls);
+        if (controls.showRooms.checked) drawRooms(overlayData.rooms);
+        if (controls.showDimensions.checked) drawDimensions(overlayData.dimensions);
+      }
+
+      drawDetectedFrame();
+      drawDetectedLines();
+      drawBuiltWalls();
+      drawRoomCandidates();
+      drawClickMarker();
+      updateRoomInfo();
+      updateClickInfo();
+      updateDetectInfo();
+    }
+
+    function findRoomAt(x, y) {
+      return overlayData.rooms.find((r) => {
+        const rx = sx(r.x);
+        const ry = sy(r.y);
+        const rw = sw(r.w);
+        const rh = sh(r.h);
+        return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+      });
+    }
+
+    function applyThresholdPreview() {
+      if (!uploadedImage) return;
+      const off = document.createElement('canvas');
+      off.width = uploadedImage.width;
+      off.height = uploadedImage.height;
+      const offCtx = off.getContext('2d');
+      offCtx.drawImage(uploadedImage, 0, 0);
+      const imageData = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = imageData.data;
+
+      // 1차 흑백화
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        const v = gray > 180 ? 255 : 0;
+        data[i] = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+      }
+
+      // 간단한 노이즈 제거: 주변 3x3에서 검은 픽셀이 적으면 흰색으로 제거
+      const copy = new Uint8ClampedArray(data);
+      function isBlackAt(arr, x, y) {
+        const idx = (y * off.width + x) * 4;
+        return arr[idx] < 128;
+      }
+      for (let y = 1; y < off.height - 1; y++) {
+        for (let x = 1; x < off.width - 1; x++) {
+          let blackCount = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (isBlackAt(copy, x + dx, y + dy)) blackCount += 1;
+            }
+          }
+          const idx = (y * off.width + x) * 4;
+          if (blackCount <= 2) {
+            data[idx] = 255;
+            data[idx + 1] = 255;
+            data[idx + 2] = 255;
+          }
+        }
+      }
+
+      offCtx.putImageData(imageData, 0, 0);
+      const img = new Image();
+      img.onload = () => {
+        displayImage = img;
+        render();
+      };
+      img.src = off.toDataURL('image/png');
+    }
+
+    function detectOuterFrame() {
+      if (!uploadedImage) {
+        updateDetectInfo('이미지를 먼저 업로드하세요.');
+        return;
+      }
+
+      const off = document.createElement('canvas');
+      off.width = uploadedImage.width;
+      off.height = uploadedImage.height;
+      const offCtx = off.getContext('2d');
+      offCtx.drawImage(uploadedImage, 0, 0);
+      const imageData = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = imageData.data;
+
+      const verticalDarkCounts = new Array(off.width).fill(0);
+      const horizontalDarkCounts = new Array(off.height).fill(0);
+      const darkThreshold = 70;
+
+      for (let y = 0; y < off.height; y++) {
+        for (let x = 0; x < off.width; x++) {
+          const i = (y * off.width + x) * 4;
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          if (gray < darkThreshold) {
+            verticalDarkCounts[x] += 1;
+            horizontalDarkCounts[y] += 1;
+          }
+        }
+      }
+
+      const minVerticalHits = Math.max(20, Math.floor(off.height * 0.18));
+      const minHorizontalHits = Math.max(20, Math.floor(off.width * 0.18));
+
+      let left = -1;
+      let right = -1;
+      let top = -1;
+      let bottom = -1;
+
+      for (let x = 0; x < off.width; x++) {
+        if (verticalDarkCounts[x] >= minVerticalHits) {
+          left = x;
+          break;
+        }
+      }
+      for (let x = off.width - 1; x >= 0; x--) {
+        if (verticalDarkCounts[x] >= minVerticalHits) {
+          right = x;
+          break;
+        }
+      }
+      for (let y = 0; y < off.height; y++) {
+        if (horizontalDarkCounts[y] >= minHorizontalHits) {
+          top = y;
+          break;
+        }
+      }
+      for (let y = off.height - 1; y >= 0; y--) {
+        if (horizontalDarkCounts[y] >= minHorizontalHits) {
+          bottom = y;
+          break;
+        }
+      }
+
+      if (left < 0 || right < 0 || top < 0 || bottom < 0 || right <= left || bottom <= top) {
+        detectedFrame = null;
+        updateDetectInfo('외곽 자동 정렬 실패: 뚜렷한 외곽선을 찾지 못했습니다.');
+        render();
+        return;
+      }
+
+      detectedFrame = { left, top, right, bottom };
+      render();
+    }
+
+    function detectLineCandidates() {
+      if (!uploadedImage) {
+        updateDetectInfo('이미지를 먼저 업로드하세요.');
+        return;
+      }
+
+      const off = document.createElement('canvas');
+      off.width = uploadedImage.width;
+      off.height = uploadedImage.height;
+      const offCtx = off.getContext('2d');
+      offCtx.drawImage(displayImage || uploadedImage, 0, 0);
+      const imageData = offCtx.getImageData(0, 0, off.width, off.height);
+      const data = imageData.data;
+
+      const strength = Number(detectStrength.value);
+      const darkThreshold = [110, 95, 80, 65][strength - 1];
+      const minHorizontalRun = Math.max(24, Math.floor(off.width * [0.05, 0.07, 0.09, 0.11][strength - 1]));
+      const minVerticalRun = Math.max(24, Math.floor(off.height * [0.05, 0.07, 0.09, 0.11][strength - 1]));
+      const sampledRowStep = [2, 3, 4, 5][strength - 1];
+      const sampledColStep = [2, 3, 4, 5][strength - 1];
+      const bridgeGapH = [22, 18, 14, 10][strength - 1];
+      const bridgeGapV = [28, 22, 16, 12][strength - 1];
+      const neighborhood = [2, 1, 1, 0][strength - 1];
+      const minVotes = [2, 2, 3, 3][strength - 1];
+
+      const roi = detectedFrame
+        ? {
+            left: Math.max(0, Math.floor(detectedFrame.left - 14)),
+            top: Math.max(0, Math.floor(detectedFrame.top - 14)),
+            right: Math.min(off.width - 1, Math.ceil(detectedFrame.right + 14)),
+            bottom: Math.min(off.height - 1, Math.ceil(detectedFrame.bottom + 14))
+          }
+        : { left: 0, top: 0, right: off.width - 1, bottom: off.height - 1 };
+
+      function grayAt(x, y) {
+        const i = (y * off.width + x) * 4;
+        return data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      }
+
+      function isDarkWithNeighborhood(x, y) {
+        let votes = 0;
+        for (let dy = -neighborhood; dy <= neighborhood; dy++) {
+          const yy = y + dy;
+          if (yy < roi.top || yy > roi.bottom) continue;
+          for (let dx = -neighborhood; dx <= neighborhood; dx++) {
+            const xx = x + dx;
+            if (xx < roi.left || xx > roi.right) continue;
+            if (grayAt(xx, yy) < darkThreshold) votes += 1;
+          }
+        }
+        return votes >= minVotes;
+      }
+
+      function lineThicknessScore(line, axis) {
+        let samples = 0;
+        let thicknessSum = 0;
+        if (axis === 'h') {
+          const length = Math.max(1, line.x2 - line.x1);
+          const step = Math.max(6, Math.floor(length / 8));
+          for (let x = line.x1; x <= line.x2; x += step) {
+            let local = 0;
+            for (let dy = -3; dy <= 3; dy++) {
+              const yy = line.y1 + dy;
+              if (yy < roi.top || yy > roi.bottom) continue;
+              if (grayAt(x, yy) < darkThreshold) local += 1;
+            }
+            thicknessSum += local;
+            samples += 1;
+          }
+        } else {
+          const length = Math.max(1, line.y2 - line.y1);
+          const step = Math.max(6, Math.floor(length / 8));
+          for (let y = line.y1; y <= line.y2; y += step) {
+            let local = 0;
+            for (let dx = -3; dx <= 3; dx++) {
+              const xx = line.x1 + dx;
+              if (xx < roi.left || xx > roi.right) continue;
+              if (grayAt(xx, y) < darkThreshold) local += 1;
+            }
+            thicknessSum += local;
+            samples += 1;
+          }
+        }
+        return samples ? thicknessSum / samples : 0;
+      }
+
+      function collectRunsHorizontal(y) {
+        const runs = [];
+        let runStart = -1;
+        let gap = 0;
+        for (let x = roi.left; x <= roi.right; x++) {
+          const isDark = isDarkWithNeighborhood(x, y);
+          if (isDark) {
+            if (runStart < 0) runStart = x;
+            gap = 0;
+          } else if (runStart >= 0) {
+            gap += 1;
+            if (gap > bridgeGapH || x === roi.right) {
+              const runEnd = x - gap;
+              if (runEnd - runStart >= minHorizontalRun) {
+                runs.push({ x1: runStart, y1: y, x2: runEnd, y2: y, len: runEnd - runStart, axis: 'h' });
+              }
+              runStart = -1;
+              gap = 0;
+            }
+          }
+        }
+        return runs;
+      }
+
+      function collectRunsVertical(x) {
+        const runs = [];
+        let runStart = -1;
+        let gap = 0;
+        for (let y = roi.top; y <= roi.bottom; y++) {
+          const isDark = isDarkWithNeighborhood(x, y);
+          if (isDark) {
+            if (runStart < 0) runStart = y;
+            gap = 0;
+          } else if (runStart >= 0) {
+            gap += 1;
+            if (gap > bridgeGapV || y === roi.bottom) {
+              const runEnd = y - gap;
+              if (runEnd - runStart >= minVerticalRun) {
+                runs.push({ x1: x, y1: runStart, x2: x, y2: runEnd, len: runEnd - runStart, axis: 'v' });
+              }
+              runStart = -1;
+              gap = 0;
+            }
+          }
+        }
+        return runs;
+      }
+
+      const horizontal = [];
+      for (let y = roi.top; y <= roi.bottom; y += sampledRowStep) {
+        horizontal.push(...collectRunsHorizontal(y));
+      }
+
+      const vertical = [];
+      for (let x = roi.left; x <= roi.right; x += sampledColStep) {
+        vertical.push(...collectRunsVertical(x));
+      }
+
+      function mergeNearby(lines, isHorizontal) {
+        const sorted = lines.slice().sort((a, b) => {
+          if (isHorizontal) return a.y1 - b.y1 || a.x1 - b.x1;
+          return a.x1 - b.x1 || a.y1 - b.y1;
+        });
+        const merged = [];
+        const bandTolerance = 8;
+        const overlapTolerance = 18;
+
+        for (const line of sorted) {
+          let mergedIn = false;
+          for (const prev of merged) {
+            if (isHorizontal) {
+              const sameBand = Math.abs(prev.y1 - line.y1) <= bandTolerance;
+              const overlap = !(line.x1 > prev.x2 + overlapTolerance || line.x2 < prev.x1 - overlapTolerance);
+              if (sameBand && overlap) {
+                prev.x1 = Math.min(prev.x1, line.x1);
+                prev.x2 = Math.max(prev.x2, line.x2);
+                prev.y1 = Math.round((prev.y1 + line.y1) / 2);
+                prev.y2 = prev.y1;
+                prev.len = prev.x2 - prev.x1;
+                mergedIn = true;
+                break;
+              }
+            } else {
+              const sameBand = Math.abs(prev.x1 - line.x1) <= bandTolerance;
+              const overlap = !(line.y1 > prev.y2 + overlapTolerance || line.y2 < prev.y1 - overlapTolerance);
+              if (sameBand && overlap) {
+                prev.y1 = Math.min(prev.y1, line.y1);
+                prev.y2 = Math.max(prev.y2, line.y2);
+                prev.x1 = Math.round((prev.x1 + line.x1) / 2);
+                prev.x2 = prev.x1;
+                prev.len = prev.y2 - prev.y1;
+                mergedIn = true;
+                break;
+              }
+            }
+          }
+          if (!mergedIn) merged.push({ ...line });
+        }
+        return merged;
+      }
+
+      function scoreWallPair(line, peers, axis) {
+        const pairDistMin = 4;
+        const pairDistMax = 24;
+        let best = 0;
+        peers.forEach(peer => {
+          if (peer === line) return;
+          if (axis === 'h') {
+            const dy = Math.abs(peer.y1 - line.y1);
+            const overlap = Math.min(line.x2, peer.x2) - Math.max(line.x1, peer.x1);
+            if (dy >= pairDistMin && dy <= pairDistMax && overlap > 30) best = Math.max(best, overlap);
+          } else {
+            const dx = Math.abs(peer.x1 - line.x1);
+            const overlap = Math.min(line.y2, peer.y2) - Math.max(line.y1, peer.y1);
+            if (dx >= pairDistMin && dx <= pairDistMax && overlap > 30) best = Math.max(best, overlap);
+          }
+        });
+        return best;
+      }
+
+      function extendToIntersections(hLines, vLines) {
+        const hs = hLines.map(l => ({ ...l }));
+        const vs = vLines.map(l => ({ ...l }));
+        hs.forEach(h => {
+          vs.forEach(v => {
+            const crossesX = v.x1 >= h.x1 - 12 && v.x1 <= h.x2 + 12;
+            const crossesY = h.y1 >= v.y1 - 12 && h.y1 <= v.y2 + 12;
+            if (crossesX && crossesY) {
+              h.x1 = Math.min(h.x1, v.x1);
+              h.x2 = Math.max(h.x2, v.x1);
+              v.y1 = Math.min(v.y1, h.y1);
+              v.y2 = Math.max(v.y2, h.y1);
+            }
+          });
+        });
+        return { hs, vs };
+      }
+
+      function removeOuterDimensionLike(lines, axis) {
+        const edgeBand = 26;
+        return lines.filter(line => {
+          if (axis === 'h') {
+            const nearTop = Math.abs(line.y1 - roi.top) <= edgeBand;
+            const nearBottom = Math.abs(line.y1 - roi.bottom) <= edgeBand;
+            const tooLong = (line.x2 - line.x1) > (roi.right - roi.left) * 0.72;
+            return !(tooLong && (nearTop || nearBottom));
+          }
+          const nearLeft = Math.abs(line.x1 - roi.left) <= edgeBand;
+          const nearRight = Math.abs(line.x1 - roi.right) <= edgeBand;
+          const tooLong = (line.y2 - line.y1) > (roi.bottom - roi.top) * 0.72;
+          return !(tooLong && (nearLeft || nearRight));
+        });
+      }
+
+      let mergedHorizontal = mergeNearby(horizontal, true)
+        .map(line => ({ ...line, pairScore: 0, thicknessScore: lineThicknessScore(line, 'h') }))
+        .filter(line => (line.x2 - line.x1) >= minHorizontalRun)
+        .sort((a, b) => (b.x2 - b.x1) - (a.x2 - a.x1))
+        .slice(0, 160);
+
+      let mergedVertical = mergeNearby(vertical, false)
+        .map(line => ({ ...line, pairScore: 0, thicknessScore: lineThicknessScore(line, 'v') }))
+        .filter(line => (line.y2 - line.y1) >= minVerticalRun)
+        .sort((a, b) => (b.y2 - b.y1) - (a.y2 - a.y1))
+        .slice(0, 160);
+
+      mergedHorizontal.forEach(line => {
+        line.pairScore = scoreWallPair(line, mergedHorizontal, 'h');
+      });
+      mergedVertical.forEach(line => {
+        line.pairScore = scoreWallPair(line, mergedVertical, 'v');
+      });
+
+      const minThickness = strength <= 2 ? 2.2 : 2.8;
+      mergedHorizontal = mergedHorizontal.filter(line => (line.pairScore > 30 || (line.x2 - line.x1) > off.width * 0.14) && line.thicknessScore >= minThickness);
+      mergedVertical = mergedVertical.filter(line => (line.pairScore > 30 || (line.y2 - line.y1) > off.height * 0.14) && line.thicknessScore >= minThickness);
+
+      mergedHorizontal = removeOuterDimensionLike(mergedHorizontal, 'h');
+      mergedVertical = removeOuterDimensionLike(mergedVertical, 'v');
+
+      const extended = extendToIntersections(mergedHorizontal, mergedVertical);
+      mergedHorizontal = extended.hs;
+      mergedVertical = extended.vs;
+
+      detectedLines = [...mergedHorizontal, ...mergedVertical];
+      builtWalls = [];
+      updateDetectInfo('선 후보 추출 완료: ' + detectedLines.length + '개 표시 중, 검출 강도 ' + strength + ', ROI 기반 미세 필터 적용');
+      render();
+    }
+
+    function buildWallStructure() {
+      if (!detectedLines.length) {
+        updateDetectInfo('먼저 선 후보를 추출하세요.');
+        return;
+      }
+
+      const horizontals = detectedLines.filter(l => Math.abs(l.y1 - l.y2) < 1)
+        .filter(l => (l.x2 - l.x1) >= Math.max(34, canvas.width * 0.04));
+      const verticals = detectedLines.filter(l => Math.abs(l.x1 - l.x2) < 1)
+        .filter(l => (l.y2 - l.y1) >= Math.max(34, canvas.height * 0.04));
+
+      function snapLines(lines, axis) {
+        const snapped = lines.map(l => ({ ...l }));
+        for (let i = 0; i < snapped.length; i++) {
+          for (let j = i + 1; j < snapped.length; j++) {
+            const a = snapped[i];
+            const b = snapped[j];
+            if (axis === 'h') {
+              if (Math.abs(a.y1 - b.y1) <= 6) {
+                if (Math.abs(a.x2 - b.x1) <= 16) a.x2 = b.x1;
+                if (Math.abs(b.x2 - a.x1) <= 16) b.x2 = a.x1;
+              }
+            } else {
+              if (Math.abs(a.x1 - b.x1) <= 6) {
+                if (Math.abs(a.y2 - b.y1) <= 16) a.y2 = b.y1;
+                if (Math.abs(b.y2 - a.y1) <= 16) b.y2 = a.y1;
+              }
+            }
+          }
+        }
+        return snapped;
+      }
+
+      function snapIntersections(hLines, vLines) {
+        hLines.forEach(h => {
+          vLines.forEach(v => {
+            const nearX1 = Math.abs(v.x1 - h.x1) < 20;
+            const nearX2 = Math.abs(v.x1 - h.x2) < 20;
+            const nearY1 = Math.abs(h.y1 - v.y1) < 20;
+            const nearY2 = Math.abs(h.y1 - v.y2) < 20;
+            const crossesX = v.x1 >= h.x1 - 20 && v.x1 <= h.x2 + 20;
+            const crossesY = h.y1 >= v.y1 - 20 && h.y1 <= v.y2 + 20;
+            if (crossesX && crossesY) {
+              if (nearX1) h.x1 = v.x1;
+              if (nearX2) h.x2 = v.x1;
+              if (nearY1) v.y1 = h.y1;
+              if (nearY2) v.y2 = h.y1;
+            }
+          });
+        });
+      }
+
+      function fillMissingWalls(lines, axis) {
+        const result = lines.map(l => ({ ...l }));
+        for (let i = 0; i < lines.length; i++) {
+          for (let j = i + 1; j < lines.length; j++) {
+            const a = lines[i];
+            const b = lines[j];
+            if (axis === 'v') {
+              const sameX = Math.abs(a.x1 - b.x1) < 10;
+              const ordered = a.y1 < b.y1 ? [a, b] : [b, a];
+              const gap = ordered[1].y1 - ordered[0].y2;
+              if (sameX && gap > 10 && gap < 80) {
+                result.push({ x1: ordered[0].x1, y1: ordered[0].y2, x2: ordered[0].x1, y2: ordered[1].y1 });
+              }
+            } else {
+              const sameY = Math.abs(a.y1 - b.y1) < 10;
+              const ordered = a.x1 < b.x1 ? [a, b] : [b, a];
+              const gap = ordered[1].x1 - ordered[0].x2;
+              if (sameY && gap > 10 && gap < 80) {
+                result.push({ x1: ordered[0].x2, y1: ordered[0].y1, x2: ordered[1].x1, y2: ordered[0].y1 });
+              }
+            }
+          }
+        }
+        return result;
+      }
+
+      const snappedH = snapLines(horizontals, 'h');
+      const snappedV = snapLines(verticals, 'v');
+      snapIntersections(snappedH, snappedV);
+
+      const filledH = fillMissingWalls(snappedH, 'h');
+      const filledV = fillMissingWalls(snappedV, 'v');
+
+      const keptH = filledH.filter(line => {
+        const touches = filledV.some(v => {
+          const nearX1 = Math.abs(v.x1 - line.x1) <= 12;
+          const nearX2 = Math.abs(v.x1 - line.x2) <= 12;
+          const crossesY = v.y1 <= line.y1 + 12 && v.y2 >= line.y1 - 12;
+          return crossesY && (nearX1 || nearX2);
+        });
+        return touches || (line.x2 - line.x1) > canvas.width * 0.12;
+      });
+
+      const keptV = filledV.filter(line => {
+        const touches = keptH.some(h => {
+          const nearY1 = Math.abs(h.y1 - line.y1) <= 12;
+          const nearY2 = Math.abs(h.y1 - line.y2) <= 12;
+          const crossesX = h.x1 <= line.x1 + 12 && h.x2 >= line.x1 - 12;
+          return crossesX && (nearY1 || nearY2);
+        });
+        return touches || (line.y2 - line.y1) > canvas.height * 0.12;
+      });
+
+      function dedupe(lines, axis) {
+        const out = [];
+        for (const line of lines) {
+          const exists = out.some(prev => {
+            if (axis === 'h') {
+              return Math.abs(prev.y1 - line.y1) <= 6 && Math.abs(prev.x1 - line.x1) <= 14 && Math.abs(prev.x2 - line.x2) <= 14;
+            }
+            return Math.abs(prev.x1 - line.x1) <= 6 && Math.abs(prev.y1 - line.y1) <= 14 && Math.abs(prev.y2 - line.y2) <= 14;
+          });
+          if (!exists) out.push(line);
+        }
+        return out;
+      }
+
+      builtWalls = [...dedupe(keptH, 'h'), ...dedupe(keptV, 'v')];
+      roomCandidates = [];
+      updateDetectInfo('벽 구조 생성 완료: ' + builtWalls.length + '개 벽 선분 표시 중');
+      render();
+    }
+
+    function findRoomCandidates() {
+      if (!builtWalls.length) {
+        updateDetectInfo('먼저 벽 구조를 생성하세요.');
+        return;
+      }
+
+      const roi = detectedFrame
+        ? {
+            left: Math.max(0, Math.floor(detectedFrame.left)),
+            top: Math.max(0, Math.floor(detectedFrame.top)),
+            right: Math.min(canvas.width - 1, Math.ceil(detectedFrame.right)),
+            bottom: Math.min(canvas.height - 1, Math.ceil(detectedFrame.bottom))
+          }
+        : { left: 0, top: 0, right: canvas.width - 1, bottom: canvas.height - 1 };
+
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = canvas.width;
+      maskCanvas.height = canvas.height;
+      const mctx = maskCanvas.getContext('2d');
+      mctx.fillStyle = 'white';
+      mctx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+      // 벽 구조를 두껍게 그려 flood fill의 장애물로 사용
+      mctx.strokeStyle = 'black';
+      mctx.lineCap = 'square';
+      mctx.lineJoin = 'miter';
+      mctx.lineWidth = 10;
+      builtWalls.forEach(line => {
+        mctx.beginPath();
+        mctx.moveTo(line.x1, line.y1);
+        mctx.lineTo(line.x2, line.y2);
+        mctx.stroke();
+      });
+
+      const maskData = mctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const data = maskData.data;
+      const width = maskCanvas.width;
+      const height = maskCanvas.height;
+      const visited = new Uint8Array(width * height);
+
+      function isBlocked(x, y) {
+        const idx = (y * width + x) * 4;
+        return data[idx] < 128;
+      }
+
+      function floodFromOutside() {
+        const q = [];
+        function push(x, y) {
+          if (x < roi.left || x > roi.right || y < roi.top || y > roi.bottom) return;
+          const idx = y * width + x;
+          if (visited[idx]) return;
+          if (isBlocked(x, y)) return;
+          visited[idx] = 1;
+          q.push([x, y]);
+        }
+
+        for (let x = roi.left; x <= roi.right; x++) {
+          push(x, roi.top);
+          push(x, roi.bottom);
+        }
+        for (let y = roi.top; y <= roi.bottom; y++) {
+          push(roi.left, y);
+          push(roi.right, y);
+        }
+
+        while (q.length) {
+          const [x, y] = q.shift();
+          push(x + 1, y);
+          push(x - 1, y);
+          push(x, y + 1);
+          push(x, y - 1);
+        }
+      }
+
+      floodFromOutside();
+
+      const candidates = [];
+
+      function grayAtFromDisplay(x, y) {
+        if (!displayImage) return 255;
+        const probe = document.createElement('canvas');
+        probe.width = canvas.width;
+        probe.height = canvas.height;
+        const pctx = probe.getContext('2d');
+        pctx.drawImage(displayImage, 0, 0, canvas.width, canvas.height);
+        const px = pctx.getImageData(x, y, 1, 1).data;
+        return px[0] * 0.299 + px[1] * 0.587 + px[2] * 0.114;
+      }
+
+      function floodRoom(startX, startY) {
+        const q = [[startX, startY]];
+        const cells = [];
+        let minX = startX, maxX = startX, minY = startY, maxY = startY;
+        const mark = 2;
+        visited[startY * width + startX] = mark;
+
+        while (q.length) {
+          const [x, y] = q.shift();
+          cells.push([x, y]);
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+
+          const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+          for (const [nx, ny] of neighbors) {
+            if (nx < roi.left || nx > roi.right || ny < roi.top || ny > roi.bottom) continue;
+            const idx = ny * width + nx;
+            if (visited[idx]) continue;
+            if (isBlocked(nx, ny)) continue;
+            visited[idx] = mark;
+            q.push([nx, ny]);
+          }
+        }
+
+        const boxW = maxX - minX + 1;
+        const boxH = maxY - minY + 1;
+        const area = cells.length;
+        const cx = Math.floor((minX + maxX) / 2);
+        const cy = Math.floor((minY + maxY) / 2);
+        const centerGray = grayAtFromDisplay(cx, cy);
+
+        const tooSmall = boxW < 35 || boxH < 35 || area < 1800;
+        const tooLarge = boxW > (roi.right - roi.left) * 0.9 || boxH > (roi.bottom - roi.top) * 0.9;
+        const flatBalconyLike = boxH < canvas.height * 0.09 || boxW < canvas.width * 0.07;
+        const tooDark = centerGray < 150;
+
+        if (!tooSmall && !tooLarge && !flatBalconyLike && !tooDark) {
+          candidates.push({ x: minX, y: minY, w: boxW, h: boxH, area });
+        }
+      }
+
+      for (let y = roi.top + 1; y < roi.bottom; y += 3) {
+        for (let x = roi.left + 1; x < roi.right; x += 3) {
+          const idx = y * width + x;
+          if (visited[idx]) continue;
+          if (isBlocked(x, y)) continue;
+          floodRoom(x, y);
+        }
+      }
+
+      const deduped = [];
+      candidates
+        .sort((a, b) => b.area - a.area)
+        .forEach(c => {
+          const exists = deduped.some(p =>
+            Math.abs(p.x - c.x) <= 12 &&
+            Math.abs(p.y - c.y) <= 12 &&
+            Math.abs(p.w - c.w) <= 18 &&
+            Math.abs(p.h - c.h) <= 18
+          );
+          if (!exists) deduped.push(c);
+        });
+
+      roomCandidates = deduped.slice(0, 20);
+      updateDetectInfo('방 후보 생성 완료: ' + roomCandidates.length + '개 영역 표시 중 (flood fill 기반)');
+      render();
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      fileName.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          uploadedImage = img;
+          displayImage = img;
+          detectedFrame = null;
+          detectedLines = [];
+          builtWalls = [];
+          roomCandidates = [];
+          lastClick = null;
+          updateDetectInfo();
+          render();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    roomSelect.addEventListener('change', (e) => {
+      selectedRoom = e.target.value;
+      render();
+    });
+
+    gridSlider.addEventListener('input', () => {
+      gridValue.textContent = gridSlider.value;
+      render();
+    });
+
+    detectStrength.addEventListener('input', () => {
+      detectStrengthValue.textContent = detectStrength.value;
+    });
+
+    Object.values(controls).forEach((el) => el.addEventListener('change', render));
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      lastClick = { x, y };
+      const room = findRoomAt(x, y);
+      if (room) {
+        selectedRoom = room.id;
+        roomSelect.value = room.id;
+      }
+      render();
+    });
+
+    document.getElementById('btnThreshold').addEventListener('click', applyThresholdPreview);
+
+    document.getElementById('btnResetImage').addEventListener('click', () => {
+      if (!uploadedImage) return;
+      displayImage = uploadedImage;
+      render();
+    });
+
+    document.getElementById('btnDetectFrame').addEventListener('click', detectOuterFrame);
+
+    document.getElementById('btnDetectLines').addEventListener('click', detectLineCandidates);
+
+    document.getElementById('btnResetFrame').addEventListener('click', () => {
+      detectedFrame = null;
+      updateDetectInfo('정렬을 해제했습니다.');
+      render();
+    });
+
+    document.getElementById('btnResetLines').addEventListener('click', () => {
+      detectedLines = [];
+      builtWalls = [];
+      updateDetectInfo('선 후보 표시를 초기화했습니다.');
+      render();
+    });
+
+    document.getElementById('btnBuildWalls').addEventListener('click', buildWallStructure);
+
+    document.getElementById('btnResetBuiltWalls').addEventListener('click', () => {
+      builtWalls = [];
+      roomCandidates = [];
+      updateDetectInfo('벽 구조 표시를 초기화했습니다.');
+      render();
+    });
+
+    document.getElementById('btnFindRooms').addEventListener('click', findRoomCandidates);
+
+    document.getElementById('btnResetRooms').addEventListener('click', () => {
+      roomCandidates = [];
+      updateDetectInfo('방 후보 표시를 초기화했습니다.');
+      render();
+    });
+
+    document.getElementById('applyJson').addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(jsonInput.value);
+        overlayData = {
+          walls: Array.isArray(parsed.walls) ? parsed.walls : [],
+          rooms: Array.isArray(parsed.rooms) ? parsed.rooms : [],
+          dimensions: Array.isArray(parsed.dimensions) ? parsed.dimensions : []
+        };
+        populateRoomSelect();
+        render();
+      } catch (err) {
+        alert('JSON 형식이 올바르지 않습니다.');
+      }
+    });
+
+    document.getElementById('resetJson').addEventListener('click', () => {
+      overlayData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      populateRoomSelect();
+      syncJsonEditor();
+      render();
+    });
+
+    populateRoomSelect();
+    syncJsonEditor();
+    updateRoomInfo();
+    updateClickInfo();
+    updateDetectInfo();
+    detectStrengthValue.textContent = detectStrength.value;
+    render();
+  </script>
+</body>
+</html>

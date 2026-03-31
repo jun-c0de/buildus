@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "category": "방수",
+    "name": "우레탄 방수재",
+    "brand": "KCC",
+    "unit": "kg",
+    "unitPrice": 8500,
+    "coverage": 1.5,
+    "description": "욕실·발코니 방수에 사용. 1m²당 약 1.5kg 소요"
+  },
+  {
+    "id": 2,
+    "category": "방수",
+    "name": "시멘트 방수제",
+    "brand": "삼화페인트",
+    "unit": "kg",
+    "unitPrice": 4200,
+    "coverage": 1.2,
+    "description": "외벽·지하 방수에 사용. 1m²당 약 1.2kg 소요"
+  },
+  {
+    "id": 3,
+    "category": "도장",
+    "name": "친환경 실내 페인트",
+    "brand": "노루페인트",
+    "unit": "L",
+    "unitPrice": 12000,
+    "coverage": 8,
+    "description": "실내벽 도장. 1L당 약 8m² 커버 (2회 도장 기준)"
+  },
+  {
+    "id": 4,
+    "category": "도장",
+    "name": "천장용 수성 페인트",
+    "brand": "KCC",
+    "unit": "L",
+    "unitPrice": 9500,
+    "coverage": 10,
+    "description": "천장 전용. 발수성 강화 포뮬러"
+  },
+  {
+    "id": 5,
+    "category": "타일",
+    "name": "욕실 벽타일 300x600",
+    "brand": "동서산업",
+    "unit": "m²",
+    "unitPrice": 28000,
+    "coverage": 1,
+    "description": "욕실 벽면용 광택 타일"
+  },
+  {
+    "id": 6,
+    "category": "타일",
+    "name": "욕실 바닥타일 300x300",
+    "brand": "동서산업",
+    "unit": "m²",
+    "unitPrice": 22000,
+    "coverage": 1,
+    "description": "미끄럼 방지 바닥 타일"
+  },
+  {
+    "id": 7,
+    "category": "바닥재",
+    "name": "강화마루 12mm",
+    "brand": "한화L&C",
+    "unit": "m²",
+    "unitPrice": 35000,
+    "coverage": 1,
+    "description": "거실·방 바닥재. 내구성 강화"
+  },
+  {
+    "id": 8,
+    "category": "바닥재",
+    "name": "LVT 바닥재",
+    "brand": "LG하우시스",
+    "unit": "m²",
+    "unitPrice": 42000,
+    "coverage": 1,
+    "description": "방수 기능 바닥재. 주방·세탁실 추천"
+  },
+  {
+    "id": 9,
+    "category": "도배",
+    "name": "실크 벽지",
+    "brand": "LG하우시스",
+    "unit": "m²",
+    "unitPrice": 6500,
+    "coverage": 1,
+    "description": "일반 거실·방 벽지"
+  },
+  {
+    "id": 10,
+    "category": "도배",
+    "name": "합지 벽지",
+    "brand": "신한벽지",
+    "unit": "m²",
+    "unitPrice": 3800,
+    "coverage": 1,
+    "description": "경제적인 천장·벽 도배용"
+  }
+]

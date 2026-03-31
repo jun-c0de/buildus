@@ -1,0 +1,626 @@
+[
+  {
+    "id": 1,
+    "name": "광교자이더클래스",
+    "complexKey": "Xi",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2014,
+    "totalUnits": 1512,
+    "floors": 30,
+    "nearStation": "성복역 도보 5분",
+    "lat": 37.3348,
+    "lng": 127.0488,
+    "types": [
+      {
+        "area": 83,
+        "pyeong": 25,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 111,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 112,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "광교레이크포레",
+    "complexKey": "IparkForet",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2015,
+    "totalUnits": 1248,
+    "floors": 28,
+    "nearStation": "성복역 도보 8분",
+    "lat": 37.334,
+    "lng": 127.0492,
+    "types": [
+      {
+        "area": 111,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 115,
+        "pyeong": 35,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 164,
+        "pyeong": 50,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 170,
+        "pyeong": 51,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "상현마을수지센트럴아이파크",
+    "complexKey": "CentralIpark",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2009,
+    "totalUnits": 1034,
+    "floors": 23,
+    "nearStation": "상현역 도보 8분",
+    "lat": 37.327,
+    "lng": 127.0483,
+    "types": [
+      {
+        "area": 135,
+        "pyeong": 41,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 169,
+        "pyeong": 51,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 201,
+        "pyeong": 61,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "광교경남아너스빌",
+    "complexKey": "Honorsville",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2013,
+    "totalUnits": 892,
+    "floors": 25,
+    "nearStation": "상현역 도보 8분",
+    "lat": 37.329,
+    "lng": 127.0471,
+    "types": [
+      {
+        "area": 111,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 113,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 114,
+        "pyeong": 34,
+        "rooms": 3,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "광교더힐",
+    "complexKey": "TheHeal",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2012,
+    "totalUnits": 774,
+    "floors": 24,
+    "nearStation": "상현역 도보 10분",
+    "lat": 37.328,
+    "lng": 127.0462,
+    "types": [
+      {
+        "area": 94,
+        "pyeong": 28,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 108,
+        "pyeong": 33,
+        "rooms": 3,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "광교상현솔하임(도시형)",
+    "complexKey": "SoleHeim",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2016,
+    "totalUnits": 330,
+    "floors": 18,
+    "nearStation": "상현역 도보 10분",
+    "lat": 37.3275,
+    "lng": 127.048,
+    "types": [
+      {
+        "area": 39,
+        "pyeong": 12,
+        "rooms": 1,
+        "baths": 1
+      },
+      {
+        "area": 42,
+        "pyeong": 13,
+        "rooms": 1,
+        "baths": 1
+      },
+      {
+        "area": 43,
+        "pyeong": 13,
+        "rooms": 1,
+        "baths": 1
+      },
+      {
+        "area": 51,
+        "pyeong": 15,
+        "rooms": 2,
+        "baths": 1
+      },
+      {
+        "area": 52,
+        "pyeong": 16,
+        "rooms": 2,
+        "baths": 1
+      },
+      {
+        "area": 54,
+        "pyeong": 16,
+        "rooms": 2,
+        "baths": 1
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "광교마을 46-1단지 광교스타클래스",
+    "complexKey": "StarClass1",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2011,
+    "totalUnits": 561,
+    "floors": 20,
+    "nearStation": "상현역 도보 15분",
+    "lat": 37.3245,
+    "lng": 127.051,
+    "types": [
+      {
+        "area": 146,
+        "pyeong": 44,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 147,
+        "pyeong": 44,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 163,
+        "pyeong": 49,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "광교마을46-2단지광교스타클래스",
+    "complexKey": "StarClass2",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2011,
+    "totalUnits": 430,
+    "floors": 20,
+    "nearStation": "상현역 도보 13분",
+    "lat": 37.325,
+    "lng": 127.0508,
+    "types": [
+      {
+        "area": 131,
+        "pyeong": 40,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 136,
+        "pyeong": 41,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 146,
+        "pyeong": 44,
+        "rooms": 4,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "광교상떼빌파크뷰",
+    "complexKey": "ParkView",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2010,
+    "totalUnits": 512,
+    "floors": 19,
+    "nearStation": "상현역 도보 11분",
+    "lat": 37.3278,
+    "lng": 127.0476,
+    "types": [
+      {
+        "area": 132,
+        "pyeong": 40,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 183,
+        "pyeong": 55,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 207,
+        "pyeong": 63,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "광교상현마을현대",
+    "complexKey": "HD",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2002,
+    "totalUnits": 400,
+    "floors": 15,
+    "nearStation": "상현역 도보 12분",
+    "lat": 37.326,
+    "lng": 127.0495,
+    "types": [
+      {
+        "area": 109,
+        "pyeong": 33,
+        "rooms": 3,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "광교쌍용포레듀엔1단지",
+    "complexKey": "KGM1",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2013,
+    "totalUnits": 589,
+    "floors": 22,
+    "nearStation": "상현역 도보 11분",
+    "lat": 37.3282,
+    "lng": 127.0465,
+    "types": [
+      {
+        "area": 137,
+        "pyeong": 41,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 177,
+        "pyeong": 54,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 212,
+        "pyeong": 64,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "광교쌍용포레듀엔2단지",
+    "complexKey": "KGM2",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2013,
+    "totalUnits": 622,
+    "floors": 22,
+    "nearStation": "상현역 도보 10분",
+    "lat": 37.3285,
+    "lng": 127.0468,
+    "types": [
+      {
+        "area": 138,
+        "pyeong": 42,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 177,
+        "pyeong": 54,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 212,
+        "pyeong": 64,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "광교쌍용포레듀엔3단지",
+    "complexKey": "KGM3",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2014,
+    "totalUnits": 312,
+    "floors": 20,
+    "nearStation": "상현역 도보 9분",
+    "lat": 37.3288,
+    "lng": 127.0472,
+    "types": [
+      {
+        "area": 117,
+        "pyeong": 35,
+        "rooms": 3,
+        "baths": 2
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "상현동일스위트",
+    "complexKey": "DongIl",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2003,
+    "totalUnits": 516,
+    "floors": 16,
+    "nearStation": "상현역 도보 15분",
+    "lat": 37.324,
+    "lng": 127.0513,
+    "types": [
+      {
+        "area": 120,
+        "pyeong": 36,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 170,
+        "pyeong": 51,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 189,
+        "pyeong": 57,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "상현마을금호베스트빌2단지",
+    "complexKey": "KumHoBestvill2",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2005,
+    "totalUnits": 448,
+    "floors": 16,
+    "nearStation": "상현역 도보 13분",
+    "lat": 37.3238,
+    "lng": 127.0505,
+    "types": [
+      {
+        "area": 172,
+        "pyeong": 52,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 218,
+        "pyeong": 66,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "name": "상현마을금호베스트빌4단지",
+    "complexKey": "KumHoBestVill4",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2006,
+    "totalUnits": 266,
+    "floors": 15,
+    "nearStation": "상현역 도보 14분",
+    "lat": 37.3236,
+    "lng": 127.051,
+    "types": [
+      {
+        "area": 224,
+        "pyeong": 68,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "name": "상현마을현대성우1차",
+    "complexKey": "HDSW1",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2003,
+    "totalUnits": 376,
+    "floors": 15,
+    "nearStation": "상현역 도보 13분",
+    "lat": 37.3242,
+    "lng": 127.0497,
+    "types": [
+      {
+        "area": 108,
+        "pyeong": 33,
+        "rooms": 3,
+        "baths": 2
+      },
+      {
+        "area": 166,
+        "pyeong": 50,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 217,
+        "pyeong": 66,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "상현마을현대성우2차",
+    "complexKey": "HDSW2",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2004,
+    "totalUnits": 364,
+    "floors": 15,
+    "nearStation": "상현역 도보 14분",
+    "lat": 37.3235,
+    "lng": 127.05,
+    "types": [
+      {
+        "area": 166,
+        "pyeong": 50,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "name": "상현마을현대성우3차",
+    "complexKey": "HDSW3",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2006,
+    "totalUnits": 420,
+    "floors": 15,
+    "nearStation": "상현역 도보 14분",
+    "lat": 37.3237,
+    "lng": 127.0507,
+    "types": [
+      {
+        "area": 141,
+        "pyeong": 43,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 180,
+        "pyeong": 54,
+        "rooms": 4,
+        "baths": 3
+      },
+      {
+        "area": 230,
+        "pyeong": 70,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "name": "상현마을현대성우5차",
+    "complexKey": "HDSW5",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2008,
+    "totalUnits": 348,
+    "floors": 16,
+    "nearStation": "상현역 도보 15분",
+    "lat": 37.3232,
+    "lng": 127.0503,
+    "types": [
+      {
+        "area": 153,
+        "pyeong": 46,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 178,
+        "pyeong": 54,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "수지금호베스트빌디에듀",
+    "complexKey": "KumHoBestvillEdu",
+    "address": "경기도 용인시 수지구 상현동",
+    "buildYear": 2007,
+    "totalUnits": 399,
+    "floors": 15,
+    "nearStation": "상현역 도보 16분",
+    "lat": 37.323,
+    "lng": 127.0515,
+    "types": [
+      {
+        "area": 157,
+        "pyeong": 47,
+        "rooms": 4,
+        "baths": 2
+      },
+      {
+        "area": 172,
+        "pyeong": 52,
+        "rooms": 4,
+        "baths": 3
+      }
+    ]
+  }
+]

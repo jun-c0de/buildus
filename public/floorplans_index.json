@@ -1,0 +1,848 @@
+[
+  {
+    "complex": "CentralIpark",
+    "units": [
+      {
+        "id": "135",
+        "unitType": "135",
+        "label": "expanded",
+        "imageFile": "135.jpg",
+        "spaJson": "floorplans/CentralIpark/135_spa.json",
+        "strJson": "floorplans/CentralIpark/135_str.json"
+      },
+      {
+        "id": "169",
+        "unitType": "169",
+        "label": "expanded",
+        "imageFile": "169.jpg",
+        "spaJson": "floorplans/CentralIpark/169_spa.json",
+        "strJson": "floorplans/CentralIpark/169_str.json"
+      },
+      {
+        "id": "201",
+        "unitType": "201",
+        "label": "expanded",
+        "imageFile": "201.jpg",
+        "spaJson": "floorplans/CentralIpark/201_spa.json",
+        "strJson": "floorplans/CentralIpark/201_str.json"
+      }
+    ],
+    "name": "센트럴 아이파크"
+  },
+  {
+    "complex": "DongIl",
+    "units": [
+      {
+        "id": "120",
+        "unitType": "120",
+        "label": "expanded",
+        "imageFile": "120.jpg",
+        "spaJson": "floorplans/DongIl/120_spa.json",
+        "strJson": "floorplans/DongIl/120_str.json"
+      },
+      {
+        "id": "170",
+        "unitType": "170",
+        "label": "expanded",
+        "imageFile": "170.jpg",
+        "spaJson": "floorplans/DongIl/170_spa.json",
+        "strJson": "floorplans/DongIl/170_str.json"
+      },
+      {
+        "id": "189",
+        "unitType": "189",
+        "label": "expanded",
+        "imageFile": "189.jpg",
+        "spaJson": "floorplans/DongIl/189_spa.json",
+        "strJson": "floorplans/DongIl/189_str.json"
+      }
+    ],
+    "name": "동일하이빌"
+  },
+  {
+    "complex": "HD",
+    "units": [
+      {
+        "id": "109",
+        "unitType": "109",
+        "label": "expanded",
+        "imageFile": "109.jpg",
+        "spaJson": "floorplans/HD/109_spa.json",
+        "strJson": "floorplans/HD/109_str.json"
+      }
+    ],
+    "name": "현대아파트"
+  },
+  {
+    "complex": "HDSW1",
+    "units": [
+      {
+        "id": "108",
+        "unitType": "108",
+        "label": "expanded",
+        "imageFile": "108.jpg",
+        "spaJson": "floorplans/HDSW1/108_spa.json",
+        "strJson": "floorplans/HDSW1/108_str.json"
+      },
+      {
+        "id": "166",
+        "unitType": "166",
+        "label": "expanded",
+        "imageFile": "166.jpg",
+        "spaJson": "floorplans/HDSW1/166_spa.json",
+        "strJson": "floorplans/HDSW1/166_str.json"
+      },
+      {
+        "id": "217",
+        "unitType": "217",
+        "label": "expanded",
+        "imageFile": "217.jpg",
+        "spaJson": "floorplans/HDSW1/217_spa.json",
+        "strJson": "floorplans/HDSW1/217_str.json"
+      }
+    ],
+    "name": "현대성우1단지"
+  },
+  {
+    "complex": "HDSW2",
+    "units": [
+      {
+        "id": "166",
+        "unitType": "166",
+        "label": "expanded",
+        "imageFile": "166.jpg",
+        "spaJson": "floorplans/HDSW2/166_spa.json",
+        "strJson": "floorplans/HDSW2/166_str.json"
+      }
+    ],
+    "name": "현대성우2단지"
+  },
+  {
+    "complex": "HDSW3",
+    "units": [
+      {
+        "id": "141",
+        "unitType": "141",
+        "label": "expanded",
+        "imageFile": "141.jpg",
+        "spaJson": "floorplans/HDSW3/141_spa.json",
+        "strJson": "floorplans/HDSW3/141_str.json"
+      },
+      {
+        "id": "141_simple",
+        "unitType": "141",
+        "label": "basic",
+        "imageFile": "141_simple.jpg",
+        "spaJson": "floorplans/HDSW3/141_simple_spa.json",
+        "strJson": "floorplans/HDSW3/141_simple_str.json"
+      },
+      {
+        "id": "180",
+        "unitType": "180",
+        "label": "expanded",
+        "imageFile": "180.jpg",
+        "spaJson": "floorplans/HDSW3/180_spa.json",
+        "strJson": "floorplans/HDSW3/180_str.json"
+      },
+      {
+        "id": "230",
+        "unitType": "230",
+        "label": "expanded",
+        "imageFile": "230.jpg",
+        "spaJson": "floorplans/HDSW3/230_spa.json",
+        "strJson": "floorplans/HDSW3/230_str.json"
+      }
+    ],
+    "name": "현대성우3단지"
+  },
+  {
+    "complex": "HDSW5",
+    "units": [
+      {
+        "id": "153",
+        "unitType": "153",
+        "label": "expanded",
+        "imageFile": "153.jpg",
+        "spaJson": "floorplans/HDSW5/153_spa.json",
+        "strJson": "floorplans/HDSW5/153_str.json"
+      },
+      {
+        "id": "178",
+        "unitType": "178",
+        "label": "expanded",
+        "imageFile": "178.jpg",
+        "spaJson": "floorplans/HDSW5/178_spa.json",
+        "strJson": "floorplans/HDSW5/178_str.json"
+      }
+    ],
+    "name": "현대성우5단지"
+  },
+  {
+    "complex": "Honorsville",
+    "units": [
+      {
+        "id": "111B",
+        "unitType": "111B",
+        "label": "expanded",
+        "imageFile": "111B.jpg",
+        "spaJson": "floorplans/Honorsville/111B_spa.json",
+        "strJson": "floorplans/Honorsville/111B_str.json"
+      },
+      {
+        "id": "111B_simple",
+        "unitType": "111B",
+        "label": "basic",
+        "imageFile": "111B_simple.jpg",
+        "spaJson": "floorplans/Honorsville/111B_simple_spa.json",
+        "strJson": "floorplans/Honorsville/111B_simple_str.json"
+      },
+      {
+        "id": "113A",
+        "unitType": "113A",
+        "label": "expanded",
+        "imageFile": "113A.jpg",
+        "spaJson": "floorplans/Honorsville/113A_spa.json",
+        "strJson": "floorplans/Honorsville/113A_str.json"
+      },
+      {
+        "id": "113A_simple",
+        "unitType": "113A",
+        "label": "basic",
+        "imageFile": "113A_simple.jpg",
+        "spaJson": "floorplans/Honorsville/113A_simple_spa.json",
+        "strJson": "floorplans/Honorsville/113A_simple_str.json"
+      },
+      {
+        "id": "114C",
+        "unitType": "114C",
+        "label": "expanded",
+        "imageFile": "114C.jpg",
+        "spaJson": "floorplans/Honorsville/114C_spa.json",
+        "strJson": "floorplans/Honorsville/114C_str.json"
+      },
+      {
+        "id": "114C_simple",
+        "unitType": "114C",
+        "label": "basic",
+        "imageFile": "114C_simple.jpg",
+        "spaJson": "floorplans/Honorsville/114C_simple_spa.json",
+        "strJson": "floorplans/Honorsville/114C_simple_str.json"
+      }
+    ],
+    "name": "어너스빌"
+  },
+  {
+    "complex": "IparkForet",
+    "units": [
+      {
+        "id": "111A",
+        "unitType": "111A",
+        "label": "expanded",
+        "imageFile": "111A.jpg",
+        "spaJson": "floorplans/IparkForet/111A_spa.json",
+        "strJson": "floorplans/IparkForet/111A_str.json"
+      },
+      {
+        "id": "111A_simple",
+        "unitType": "111A",
+        "label": "basic",
+        "imageFile": "111A_simple.jpg",
+        "spaJson": "floorplans/IparkForet/111A_simple_spa.json",
+        "strJson": "floorplans/IparkForet/111A_simple_str.json"
+      },
+      {
+        "id": "115B",
+        "unitType": "115B",
+        "label": "expanded",
+        "imageFile": "115B.jpg",
+        "spaJson": "floorplans/IparkForet/115B_spa.json",
+        "strJson": "floorplans/IparkForet/115B_str.json"
+      },
+      {
+        "id": "115B_simple",
+        "unitType": "115B",
+        "label": "basic",
+        "imageFile": "115B_simple.jpg",
+        "spaJson": "floorplans/IparkForet/115B_simple_spa.json",
+        "strJson": "floorplans/IparkForet/115B_simple_str.json"
+      },
+      {
+        "id": "115C",
+        "unitType": "115C",
+        "label": "expanded",
+        "imageFile": "115C.jpg",
+        "spaJson": "floorplans/IparkForet/115C_spa.json",
+        "strJson": "floorplans/IparkForet/115C_str.json"
+      },
+      {
+        "id": "115C_simple",
+        "unitType": "115C",
+        "label": "basic",
+        "imageFile": "115C_simple.jpg",
+        "spaJson": "floorplans/IparkForet/115C_simple_spa.json",
+        "strJson": "floorplans/IparkForet/115C_simple_str.json"
+      },
+      {
+        "id": "164_sta",
+        "unitType": "164",
+        "label": "expanded",
+        "imageFile": "164_sta.jpg",
+        "spaJson": "floorplans/IparkForet/164_sta_spa.json",
+        "strJson": "floorplans/IparkForet/164_sta_str.json"
+      },
+      {
+        "id": "164_sta_simple",
+        "unitType": "164",
+        "label": "basic",
+        "imageFile": "164_sta_simple.jpg",
+        "spaJson": "floorplans/IparkForet/164_sta_simple_spa.json",
+        "strJson": "floorplans/IparkForet/164_sta_simple_str.json"
+      },
+      {
+        "id": "170_sta",
+        "unitType": "170",
+        "label": "expanded",
+        "imageFile": "170_sta.jpg",
+        "spaJson": "floorplans/IparkForet/170_sta_spa.json",
+        "strJson": "floorplans/IparkForet/170_sta_str.json"
+      },
+      {
+        "id": "170_sta_simple",
+        "unitType": "170",
+        "label": "basic",
+        "imageFile": "170_sta_simple.jpg",
+        "spaJson": "floorplans/IparkForet/170_sta_simple_spa.json",
+        "strJson": "floorplans/IparkForet/170_sta_simple_str.json"
+      }
+    ],
+    "name": "아이파크 포레스트"
+  },
+  {
+    "complex": "KGM1",
+    "units": [
+      {
+        "id": "137",
+        "unitType": "137",
+        "label": "expanded",
+        "imageFile": "137.jpg",
+        "spaJson": "floorplans/KGM1/137_spa.json",
+        "strJson": "floorplans/KGM1/137_str.json"
+      },
+      {
+        "id": "177",
+        "unitType": "177",
+        "label": "expanded",
+        "imageFile": "177.jpg",
+        "spaJson": "floorplans/KGM1/177_spa.json",
+        "strJson": "floorplans/KGM1/177_str.json"
+      },
+      {
+        "id": "212",
+        "unitType": "212",
+        "label": "expanded",
+        "imageFile": "212.jpg",
+        "spaJson": "floorplans/KGM1/212_spa.json",
+        "strJson": "floorplans/KGM1/212_str.json"
+      }
+    ],
+    "name": "금강마을1단지"
+  },
+  {
+    "complex": "KGM2",
+    "units": [
+      {
+        "id": "138",
+        "unitType": "138",
+        "label": "expanded",
+        "imageFile": "138.jpg",
+        "spaJson": "floorplans/KGM2/138_spa.json",
+        "strJson": "floorplans/KGM2/138_str.json"
+      },
+      {
+        "id": "177",
+        "unitType": "177",
+        "label": "expanded",
+        "imageFile": "177.jpg",
+        "spaJson": "floorplans/KGM2/177_spa.json",
+        "strJson": "floorplans/KGM2/177_str.json"
+      },
+      {
+        "id": "212",
+        "unitType": "212",
+        "label": "expanded",
+        "imageFile": "212.jpg",
+        "spaJson": "floorplans/KGM2/212_spa.json",
+        "strJson": "floorplans/KGM2/212_str.json"
+      }
+    ],
+    "name": "금강마을2단지"
+  },
+  {
+    "complex": "KGM3",
+    "units": [
+      {
+        "id": "117",
+        "unitType": "117",
+        "label": "expanded",
+        "imageFile": "117.jpg",
+        "spaJson": "floorplans/KGM3/117_spa.json",
+        "strJson": "floorplans/KGM3/117_str.json"
+      }
+    ],
+    "name": "금강마을3단지"
+  },
+  {
+    "complex": "KumHoBestvill2",
+    "units": [
+      {
+        "id": "172",
+        "unitType": "172",
+        "label": "expanded",
+        "imageFile": "172.jpg",
+        "spaJson": "floorplans/KumHoBestvill2/172_spa.json",
+        "strJson": "floorplans/KumHoBestvill2/172_str.json"
+      },
+      {
+        "id": "218",
+        "unitType": "218",
+        "label": "expanded",
+        "imageFile": "218.jpg",
+        "spaJson": "floorplans/KumHoBestvill2/218_spa.json",
+        "strJson": "floorplans/KumHoBestvill2/218_str.json"
+      }
+    ],
+    "name": "금호베스트빌2차"
+  },
+  {
+    "complex": "KumHoBestVill4",
+    "units": [
+      {
+        "id": "224",
+        "unitType": "224",
+        "label": "expanded",
+        "imageFile": "224.jpg",
+        "spaJson": "floorplans/KumHoBestVill4/224_spa.json",
+        "strJson": "floorplans/KumHoBestVill4/224_str.json"
+      }
+    ],
+    "name": "금호베스트빌4차"
+  },
+  {
+    "complex": "KumHoBestvillEdu",
+    "units": [
+      {
+        "id": "157",
+        "unitType": "157",
+        "label": "expanded",
+        "imageFile": "157.jpg",
+        "spaJson": "floorplans/KumHoBestvillEdu/157_spa.json",
+        "strJson": "floorplans/KumHoBestvillEdu/157_str.json"
+      },
+      {
+        "id": "172",
+        "unitType": "172",
+        "label": "expanded",
+        "imageFile": "172.jpg",
+        "spaJson": "floorplans/KumHoBestvillEdu/172_spa.json",
+        "strJson": "floorplans/KumHoBestvillEdu/172_str.json"
+      }
+    ],
+    "name": "금호베스트빌교육"
+  },
+  {
+    "complex": "ParkView",
+    "units": [
+      {
+        "id": "132",
+        "unitType": "132",
+        "label": "expanded",
+        "imageFile": "132.jpg",
+        "spaJson": "floorplans/ParkView/132_spa.json",
+        "strJson": "floorplans/ParkView/132_str.json"
+      },
+      {
+        "id": "183",
+        "unitType": "183",
+        "label": "expanded",
+        "imageFile": "183.jpg",
+        "spaJson": "floorplans/ParkView/183_spa.json",
+        "strJson": "floorplans/ParkView/183_str.json"
+      },
+      {
+        "id": "207",
+        "unitType": "207",
+        "label": "expanded",
+        "imageFile": "207.jpg",
+        "spaJson": "floorplans/ParkView/207_spa.json",
+        "strJson": "floorplans/ParkView/207_str.json"
+      }
+    ],
+    "name": "파크뷰"
+  },
+  {
+    "complex": "SoleHeim",
+    "units": [
+      {
+        "id": "39B1",
+        "unitType": "39B1",
+        "label": "expanded",
+        "imageFile": "39B1.jpg",
+        "spaJson": "floorplans/SoleHeim/39B1_spa.json",
+        "strJson": "floorplans/SoleHeim/39B1_str.json"
+      },
+      {
+        "id": "39B1_simple",
+        "unitType": "39B1",
+        "label": "basic",
+        "imageFile": "39B1_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/39B1_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/39B1_simple_str.json"
+      },
+      {
+        "id": "42B2",
+        "unitType": "42B2",
+        "label": "expanded",
+        "imageFile": "42B2.jpg",
+        "spaJson": "floorplans/SoleHeim/42B2_spa.json",
+        "strJson": "floorplans/SoleHeim/42B2_str.json"
+      },
+      {
+        "id": "42B2_simple",
+        "unitType": "42B2",
+        "label": "basic",
+        "imageFile": "42B2_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/42B2_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/42B2_simple_str.json"
+      },
+      {
+        "id": "43C",
+        "unitType": "43C",
+        "label": "expanded",
+        "imageFile": "43C.jpg",
+        "spaJson": "floorplans/SoleHeim/43C_spa.json",
+        "strJson": "floorplans/SoleHeim/43C_str.json"
+      },
+      {
+        "id": "43C_simple",
+        "unitType": "43C",
+        "label": "basic",
+        "imageFile": "43C_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/43C_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/43C_simple_str.json"
+      },
+      {
+        "id": "51D1",
+        "unitType": "51D1",
+        "label": "expanded",
+        "imageFile": "51D1.jpg",
+        "spaJson": "floorplans/SoleHeim/51D1_spa.json",
+        "strJson": "floorplans/SoleHeim/51D1_str.json"
+      },
+      {
+        "id": "51D1_simple",
+        "unitType": "51D1",
+        "label": "basic",
+        "imageFile": "51D1_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/51D1_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/51D1_simple_str.json"
+      },
+      {
+        "id": "52D2",
+        "unitType": "52D2",
+        "label": "expanded",
+        "imageFile": "52D2.jpg",
+        "spaJson": "floorplans/SoleHeim/52D2_spa.json",
+        "strJson": "floorplans/SoleHeim/52D2_str.json"
+      },
+      {
+        "id": "52D2_simple",
+        "unitType": "52D2",
+        "label": "basic",
+        "imageFile": "52D2_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/52D2_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/52D2_simple_str.json"
+      },
+      {
+        "id": "54D3",
+        "unitType": "54D3",
+        "label": "expanded",
+        "imageFile": "54D3.jpg",
+        "spaJson": "floorplans/SoleHeim/54D3_spa.json",
+        "strJson": "floorplans/SoleHeim/54D3_str.json"
+      },
+      {
+        "id": "54D3_simple",
+        "unitType": "54D3",
+        "label": "basic",
+        "imageFile": "54D3_simple.jpg",
+        "spaJson": "floorplans/SoleHeim/54D3_simple_spa.json",
+        "strJson": "floorplans/SoleHeim/54D3_simple_str.json"
+      }
+    ],
+    "name": "솔레힘"
+  },
+  {
+    "complex": "StarClass1",
+    "units": [
+      {
+        "id": "146A",
+        "unitType": "146A",
+        "label": "expanded",
+        "imageFile": "146A.jpg",
+        "spaJson": "floorplans/StarClass1/146A_spa.json",
+        "strJson": "floorplans/StarClass1/146A_str.json"
+      },
+      {
+        "id": "147B",
+        "unitType": "147B",
+        "label": "expanded",
+        "imageFile": "147B.jpg",
+        "spaJson": "floorplans/StarClass1/147B_spa.json",
+        "strJson": "floorplans/StarClass1/147B_str.json"
+      },
+      {
+        "id": "163",
+        "unitType": "163",
+        "label": "expanded",
+        "imageFile": "163.jpg",
+        "spaJson": "floorplans/StarClass1/163_spa.json",
+        "strJson": "floorplans/StarClass1/163_str.json"
+      }
+    ],
+    "name": "스타클래스1단지"
+  },
+  {
+    "complex": "StarClass2",
+    "units": [
+      {
+        "id": "131",
+        "unitType": "131",
+        "label": "expanded",
+        "imageFile": "131.jpg",
+        "spaJson": "floorplans/StarClass2/131_spa.json",
+        "strJson": "floorplans/StarClass2/131_str.json"
+      },
+      {
+        "id": "136",
+        "unitType": "136",
+        "label": "expanded",
+        "imageFile": "136.jpg",
+        "spaJson": "floorplans/StarClass2/136_spa.json",
+        "strJson": "floorplans/StarClass2/136_str.json"
+      },
+      {
+        "id": "146",
+        "unitType": "146",
+        "label": "expanded",
+        "imageFile": "146.jpg",
+        "spaJson": "floorplans/StarClass2/146_spa.json",
+        "strJson": "floorplans/StarClass2/146_str.json"
+      }
+    ],
+    "name": "스타클래스2단지"
+  },
+  {
+    "complex": "TheHeal",
+    "units": [
+      {
+        "id": "108A",
+        "unitType": "108A",
+        "label": "expanded",
+        "imageFile": "108A.jpg",
+        "spaJson": "floorplans/TheHeal/108A_spa.json",
+        "strJson": "floorplans/TheHeal/108A_str.json"
+      },
+      {
+        "id": "108A_simple",
+        "unitType": "108A",
+        "label": "basic",
+        "imageFile": "108A_simple.jpg",
+        "spaJson": "floorplans/TheHeal/108A_simple_spa.json",
+        "strJson": "floorplans/TheHeal/108A_simple_str.json"
+      },
+      {
+        "id": "108B",
+        "unitType": "108B",
+        "label": "expanded",
+        "imageFile": "108B.jpg",
+        "spaJson": "floorplans/TheHeal/108B_spa.json",
+        "strJson": "floorplans/TheHeal/108B_str.json"
+      },
+      {
+        "id": "108B_simple",
+        "unitType": "108B",
+        "label": "basic",
+        "imageFile": "108B_simple.jpg",
+        "spaJson": "floorplans/TheHeal/108B_simple_spa.json",
+        "strJson": "floorplans/TheHeal/108B_simple_str.json"
+      },
+      {
+        "id": "108C",
+        "unitType": "108C",
+        "label": "expanded",
+        "imageFile": "108C.jpg",
+        "spaJson": "floorplans/TheHeal/108C_spa.json",
+        "strJson": "floorplans/TheHeal/108C_str.json"
+      },
+      {
+        "id": "108C_simple",
+        "unitType": "108C",
+        "label": "basic",
+        "imageFile": "108C_simple.jpg",
+        "spaJson": "floorplans/TheHeal/108C_simple_spa.json",
+        "strJson": "floorplans/TheHeal/108C_simple_str.json"
+      },
+      {
+        "id": "108D",
+        "unitType": "108D",
+        "label": "expanded",
+        "imageFile": "108D.jpg",
+        "spaJson": "floorplans/TheHeal/108D_spa.json",
+        "strJson": "floorplans/TheHeal/108D_str.json"
+      },
+      {
+        "id": "108D_simple",
+        "unitType": "108D",
+        "label": "basic",
+        "imageFile": "108D_simple.jpg",
+        "spaJson": "floorplans/TheHeal/108D_simple_spa.json",
+        "strJson": "floorplans/TheHeal/108D_simple_str.json"
+      },
+      {
+        "id": "108E",
+        "unitType": "108E",
+        "label": "expanded",
+        "imageFile": "108E.jpg",
+        "spaJson": "floorplans/TheHeal/108E_spa.json",
+        "strJson": "floorplans/TheHeal/108E_str.json"
+      },
+      {
+        "id": "108E_simple",
+        "unitType": "108E",
+        "label": "basic",
+        "imageFile": "108E_simple.jpg",
+        "spaJson": "floorplans/TheHeal/108E_simple_spa.json",
+        "strJson": "floorplans/TheHeal/108E_simple_str.json"
+      },
+      {
+        "id": "94A",
+        "unitType": "94A",
+        "label": "expanded",
+        "imageFile": "94A.jpg",
+        "spaJson": "floorplans/TheHeal/94A_spa.json",
+        "strJson": "floorplans/TheHeal/94A_str.json"
+      },
+      {
+        "id": "94A_simple",
+        "unitType": "94A",
+        "label": "basic",
+        "imageFile": "94A_simple.jpg",
+        "spaJson": "floorplans/TheHeal/94A_simple_spa.json",
+        "strJson": "floorplans/TheHeal/94A_simple_str.json"
+      }
+    ],
+    "name": "더힐"
+  },
+  {
+    "complex": "Xi",
+    "units": [
+      {
+        "id": "Xi_111A",
+        "unitType": "111A",
+        "label": "expanded",
+        "imageFile": "Xi_111A.jpg",
+        "spaJson": "floorplans/Xi/Xi_111A_spa.json",
+        "strJson": "floorplans/Xi/Xi_111A_str.json"
+      },
+      {
+        "id": "Xi_111A_simple",
+        "unitType": "111A",
+        "label": "basic",
+        "imageFile": "Xi_111A_simple.jpg",
+        "spaJson": "floorplans/Xi/Xi_111A_simple_spa.json",
+        "strJson": "floorplans/Xi/Xi_111A_simple_str.json"
+      },
+      {
+        "id": "Xi_111B",
+        "unitType": "111B",
+        "label": "expanded",
+        "imageFile": "Xi_111B.jpg",
+        "spaJson": "floorplans/Xi/Xi_111B_spa.json",
+        "strJson": "floorplans/Xi/Xi_111B_str.json"
+      },
+      {
+        "id": "Xi_111B_simple",
+        "unitType": "111B",
+        "label": "basic",
+        "imageFile": "Xi_111B_simple.jpg",
+        "spaJson": "floorplans/Xi/Xi_111B_simple_spa.json",
+        "strJson": "floorplans/Xi/Xi_111B_simple_str.json"
+      },
+      {
+        "id": "Xi_112C",
+        "unitType": "112C",
+        "label": "expanded",
+        "imageFile": "Xi_112C.jpg",
+        "spaJson": "floorplans/Xi/Xi_112C_spa.json",
+        "strJson": "floorplans/Xi/Xi_112C_str.json"
+      },
+      {
+        "id": "Xi_112C_simple",
+        "unitType": "112C",
+        "label": "basic",
+        "imageFile": "Xi_112C_simple.jpg",
+        "spaJson": "floorplans/Xi/Xi_112C_simple_spa.json",
+        "strJson": "floorplans/Xi/Xi_112C_simple_str.json"
+      },
+      {
+        "id": "Xi_83A",
+        "unitType": "83A",
+        "label": "expanded",
+        "imageFile": "Xi_83A.jpg",
+        "spaJson": "floorplans/Xi/Xi_83A_spa.json",
+        "strJson": "floorplans/Xi/Xi_83A_str.json"
+      },
+      {
+        "id": "Xi_83A_debug",
+        "unitType": "83A_debug",
+        "label": "expanded",
+        "imageFile": "Xi_83A_debug.jpg",
+        "spaJson": "floorplans/Xi/Xi_83A_debug_spa.json",
+        "strJson": "floorplans/Xi/Xi_83A_debug_str.json"
+      },
+      {
+        "id": "Xi_83A_sam2_debug",
+        "unitType": "83A_sam2_debug",
+        "label": "expanded",
+        "imageFile": "Xi_83A_sam2_debug.jpg",
+        "spaJson": "floorplans/Xi/Xi_83A_sam2_debug_spa.json",
+        "strJson": "floorplans/Xi/Xi_83A_sam2_debug_str.json"
+      },
+      {
+        "id": "Xi_83A_simple",
+        "unitType": "83A",
+        "label": "basic",
+        "imageFile": "Xi_83A_simple.jpg",
+        "spaJson": "floorplans/Xi/Xi_83A_simple_spa.json",
+        "strJson": "floorplans/Xi/Xi_83A_simple_str.json"
+      },
+      {
+        "id": "Xi_83B",
+        "unitType": "83B",
+        "label": "expanded",
+        "imageFile": "Xi_83B.jpg",
+        "spaJson": "floorplans/Xi/Xi_83B_spa.json",
+        "strJson": "floorplans/Xi/Xi_83B_str.json"
+      },
+      {
+        "id": "Xi_83B_simple",
+        "unitType": "83B",
+        "label": "basic",
+        "imageFile": "Xi_83B_simple.jpg",
+        "spaJson": "floorplans/Xi/Xi_83B_simple_spa.json",
+        "strJson": "floorplans/Xi/Xi_83B_simple_str.json"
+      }
+    ],
+    "name": "용인 수지 Xi"
+  }
+]

@@ -1,0 +1,24 @@
+Xi = 광교자이더클래스
+Honorsville = 광교경남아너스빌
+TheHeal = 광교더힐
+HD = 광교상현마을현대
+StarClass1 = 광교마을 46-1단지 광교스타클래스
+SoleHeim = 광교상현솔하임(도시형)
+StarClass2 = 광교마을46-2단지광교스타클래스
+KGM2 = 광교쌍용포레듀엔2단지
+KGM1 = 광교쌍용포레듀엔1단지
+KGM3 = 광교쌍용포레듀엔3단지
+HDSW2 = 상현마을현대성우2차
+KumHoBestvill2 = 상현마을금호베스트빌2단지
+ParkView = 광교상떼빌파크뷰
+KumHoBestvillEdu = 수지금호베스트빌디에듀
+KumHoBestVill3 = 상현마을금호베스트빌3단지
+DongIl = 상현동일스위트
+KumHoBestVill4 = 상현마을금호베스트빌4단지
+CentralIpark = 상현마을수지센트럴아이파크
+HDSW5 = 상현마을현대성우5차
+HDSW3 = 상현마을현대성우3차
+IparkForet = 광교레이크포레
+HDSW1 = 상현마을현대성우1차
+
+
