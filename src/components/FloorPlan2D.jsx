@@ -198,8 +198,8 @@ function drawLabels(ctx, roomPolys, W, H, photoMode = false) {
 // ── 메인 Canvas 렌더링 ────────────────────────────────────────────
 function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, walls, img, hoveredSet, viewStyle }) {
   // Archisketch 기준 벽 두께
-  const extW = Math.max(W * 0.018, 12);  // 외벽
-  const intW = Math.max(W * 0.008, 5);   // 내벽
+  const extW = Math.max(W * 0.005, 5);   // 외벽 (lineWidth=extW*2 → 절반이 바깥에 표시)
+  const intW = Math.max(W * 0.0025, 2);  // 내벽
   const sw   = Math.max(W * 0.005, 4);
 
   ctx.clearRect(0, 0, W, H);
