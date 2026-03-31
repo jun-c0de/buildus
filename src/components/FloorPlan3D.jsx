@@ -461,13 +461,10 @@ function Scene({ data }) {
       {/* 창호 */}
       {windows.map((poly,i) => <Window3D key={i} poly={poly} W={W} H={H} />)}
 
-      {/* 벽체 */}
-      {walls.length > 0
-        ? walls.map((poly,i) => <Wall key={i} poly={poly} W={W} H={H} />)
-        : wallSegs.map(({p1,p2,isExterior},i) => (
-            <WallSeg key={i} p1={p1} p2={p2} isExterior={isExterior} />
-          ))
-      }
+      {/* 벽체 — 항상 wallSegs 사용 (오픈플랜 내부벽 필터링 적용) */}
+      {wallSegs.map(({p1,p2,isExterior},i) => (
+        <WallSeg key={i} p1={p1} p2={p2} isExterior={isExterior} />
+      ))}
 
       <OrbitControls
         enableDamping dampingFactor={0.07}
