@@ -347,13 +347,11 @@ export default function FloorPlan2D({ data, imageUrl }) {
     }), [rooms, openGroupMap]
   );
 
+  // 호버는 개별 방 단위로 (오픈플랜도 방마다 따로)
   const hoveredSet = useMemo(() => {
     if (hovered === null) return new Set();
-    const h = roomPolys[hovered];
-    if (h?.groupIdx !== null && h?.groupIdx !== undefined)
-      return new Set(roomPolys.filter(r => r.groupIdx === h.groupIdx).map(r => r.key));
     return new Set([hovered]);
-  }, [hovered, roomPolys]);
+  }, [hovered]);
 
   // 외벽/내벽/오픈플랜 엣지 분류
   const svgEdges = useMemo(() => {

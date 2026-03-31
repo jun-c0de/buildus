@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, OrthographicCamera } from '@react-three/drei';
 import * as THREE from 'three';
-import { ROOM_CONFIG } from '../data/roomConfig';
+import { ROOM_CONFIG, OPEN_PLAN_GROUPS } from '../data/roomConfig';
 
 const SCALE  = 10;
 const WALL_H = 2.5;
@@ -33,7 +33,8 @@ function makeShape(pts) {
   return s;
 }
 function edgeKey(p1, p2) {
-  const r = ([x, y]) => `${Math.round(x * 20) / 20},${Math.round(y * 20) / 20}`;
+  // 8px 허용 오차 (SAM2 폴리곤 좌표 정밀도 보정 → 끊긴 벽 방지)
+  const r = ([x, y]) => `${Math.round(x * 8) / 8},${Math.round(y * 8) / 8}`;
   const k1 = r(p1), k2 = r(p2);
   return k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`;
 }
@@ -382,19 +383,36 @@ function Scene({ data }) {
   const { imgWidth:W, imgHeight:H, walls, windows, rooms } = data;
   const bounds = useMemo(() => calcBounds(rooms, W, H), [rooms, W, H]);
 
+  // 오픈플랜 그룹 맵 (roomName → groupIndex)
+  const openPlanMap = useMemo(() => {
+    const m = {};
+    OPEN_PLAN_GROUPS.forEach((names, gi) => names.forEach(n => (m[n] = gi)));
+    return m;
+  }, []);
+
   const wallSegs = useMemo(() => {
-    if (walls.length > 0) return [];
-    const counts={}, segs={};
+    const counts={}, segs={}, edgeRooms={};
     for (const room of rooms) {
       const pts = normalize(room.poly, W, H);
       for (let i=0; i<pts.length; i++) {
         const p1=pts[i], p2=pts[(i+1)%pts.length];
         const k=edgeKey(p1,p2);
-        counts[k]=(counts[k]||0)+1; segs[k]={p1,p2};
+        counts[k]=(counts[k]||0)+1;
+        segs[k]={p1,p2};
+        if (!edgeRooms[k]) edgeRooms[k]=[];
+        edgeRooms[k].push(room.name);
       }
     }
-    return Object.entries(segs).map(([k,{p1,p2}])=>({p1,p2,isExterior:counts[k]===1}));
-  }, [walls, rooms, W, H]);
+    return Object.entries(segs)
+      .filter(([k]) => {
+        if (counts[k] === 1) return true; // 외벽은 항상 표시
+        // 공유 엣지: 오픈플랜 그룹 내부면 숨김
+        const names = edgeRooms[k] ?? [];
+        const isOpenPlan = OPEN_PLAN_GROUPS.some(g => names.every(n => g.includes(n)));
+        return !isOpenPlan;
+      })
+      .map(([k,{p1,p2}])=>({p1,p2,isExterior:counts[k]===1}));
+  }, [rooms, W, H, openPlanMap]);
 
   // 등각투영 카메라 위치 (아파트 우상단 45도)
   const isoX = bounds.cx + (bounds.w*0.6 + 10);

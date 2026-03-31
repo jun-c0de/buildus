@@ -17,7 +17,7 @@ export default function FloorPlan() {
   const [index, setIndex] = useState(null);        // floorplans_index.json
   const [selectedComplex, setSelectedComplex] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [currentTitle, setCurrentTitle] = useState('AI Hub 건축 도면');
+  const [currentTitle, setCurrentTitle] = useState('');
   const [imageUrl, setImageUrl] = useState(null);
 
   // Load index on mount
@@ -46,27 +46,17 @@ export default function FloorPlan() {
     if (best) setSelectedUnit(best);
   }, [index, location.state]);
 
-  // Load floor plan data when selection changes (or default on mount)
+  // Load floor plan data when selection changes
   useEffect(() => {
     if (selectedUnit) {
       loadUnit(selectedUnit);
     } else {
-      // Default: legacy labels
-      loadDefault();
+      setData(null);
+      setLoading(false);
+      setImageUrl(null);
+      setCurrentTitle('');
     }
   }, [selectedUnit]);
-
-  async function loadDefault() {
-    setLoading(true);
-    setImageUrl(null);
-    try {
-      const { str, spa } = await getFloorplanData();
-      setData(parseLabels(str, spa));
-      setCurrentTitle('APT_FP_105905000 · AI Hub 건축 도면');
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function loadUnit(unit) {
     setLoading(true);
@@ -139,7 +129,7 @@ export default function FloorPlan() {
 
         <div style={{ flex: 1 }}>
           <h1 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0 }}>평면도 뷰어</h1>
-          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, margin: 0 }}>{currentTitle}</p>
+          {currentTitle && <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, margin: 0 }}>{currentTitle}</p>}
         </div>
 
         {/* 통계 */}
@@ -196,10 +186,11 @@ export default function FloorPlan() {
           </div>
         ) : !data ? (
           <div style={{
-            height: '100%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#94A3B8', fontSize: 14,
+            height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', color: '#94A3B8', fontSize: 14, gap: 8,
           }}>
-            도면 데이터를 불러올 수 없습니다
+            <span style={{ fontSize: 28 }}>🏠</span>
+            단지와 타입을 선택하세요
           </div>
         ) : mode === '2d' ? (
           <FloorPlan2D data={data} imageUrl={imageUrl} />
