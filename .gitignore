@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# 스크립트 임시 이미지/테스트 파일
+scripts/*.jpg
+scripts/*.png
+public/_test.json
+public/test.json

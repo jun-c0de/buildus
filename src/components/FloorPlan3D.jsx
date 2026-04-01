@@ -7,6 +7,12 @@ import { ROOM_CONFIG, OPEN_PLAN_GROUPS, ROOM_FLOOR_COLOR } from '../data/roomCon
 const SCALE  = 10;
 const WALL_H = 2.5;
 
+// ── 문/창호 설정 ─────────────────────────────────────────────────
+const DOOR_W            = 0.52;   // 표준 문 너비 (~80cm)
+const DOOR_H            = WALL_H * 0.84;  // 문 높이 (벽 높이의 84%)
+const BALCONY_OPEN_RATIO = 0.78;  // 발코니 창호 개구 비율
+const BALCONY_TYPES     = ['공간_발코니', '공간_실외기실'];
+
 // ── 좌표 정규화 ──────────────────────────────────────────────────
 function normalize(poly, W, H) {
   return poly.map(([x, y]) => [(x / W - 0.5) * SCALE, (y / H - 0.5) * SCALE]);
@@ -19,14 +25,29 @@ function makeShape(pts) {
   return s;
 }
 function edgeKey(p1, p2) {
-  // 8px 허용 오차 (SAM2 폴리곤 좌표 정밀도 보정 → 끊긴 벽 방지)
-  const r = ([x, y]) => `${Math.round(x * 8) / 8},${Math.round(y * 8) / 8}`;
+  // 4px 허용 오차 (SAM2 폴리곤 좌표 정밀도 보정 → 벽 두께 gap ~3-5px 브릿지)
+  const r = ([x, y]) => `${Math.round(x * 4) / 4},${Math.round(y * 4) / 4}`;
   const k1 = r(p1), k2 = r(p2);
   return k1 < k2 ? `${k1}|${k2}` : `${k2}|${k1}`;
 }
+function pointInPoly(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > pt[1]) !== (yj > pt[1]) &&
+        pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+// ── 이미지 Y → 3D world Z 변환 (floor 회전 -π/2 보정: shape_Y → world_-Z)
+// 방 바닥: normalize()[1] = +Yn → rotation(-π/2) → world Z = -Yn
+// 모든 직접 배치 요소(벽·텍스트·가구)는 -Yn 을 써야 방 바닥과 일치
+function toWorldZ(yImg, H) { return -(yImg / H - 0.5) * SCALE; }
+
 function calcBounds(rooms, W, H) {
   if (!rooms.length) return { minX:-5, maxX:5, minZ:-5, maxZ:5, cx:0, cz:0, w:10, d:10 };
-  const allPts = rooms.flatMap(r => normalize(r.poly, W, H));
+  const allPts = rooms.flatMap(r => r.poly.map(([x, y]) => [(x/W-0.5)*SCALE, toWorldZ(y,H)]));
   const minX = Math.min(...allPts.map(p => p[0]));
   const maxX = Math.max(...allPts.map(p => p[0]));
   const minZ = Math.min(...allPts.map(p => p[1]));
@@ -35,7 +56,7 @@ function calcBounds(rooms, W, H) {
 }
 
 // ── 텍스처 ───────────────────────────────────────────────────────
-function makeWoodTexture(color) {
+function makeWoodTexture(color = '#C9A050') {
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 512;
   const ctx = canvas.getContext('2d');
@@ -63,7 +84,7 @@ function makeTileTexture(dark=false) {
   const canvas = document.createElement('canvas');
   canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  const base = dark?'#CCCAC6':'#EAEAE8', tile=dark?'#D4D2CE':'#F0F0EE', line=dark?'#B0AEAD':'#D0CECC';
+  const base = dark?'#DDD9D2':'#E8F2F8', tile=dark?'#E5E2DB':'#EEF6FB', line=dark?'#C8C4BC':'#C4D8E8';
   ctx.fillStyle = base; ctx.fillRect(0,0,256,256);
   const sz=60, gap=4;
   for (let row=0; row*(sz+gap)<256; row++) {
@@ -244,7 +265,7 @@ function Wardrobe({ position, rotation=0, s=1 }) {
 // ── 룸별 가구 자동 배치 ──────────────────────────────────────────
 function RoomFurniture({ room, W, H }) {
   const cx3 = (room.cx / W - 0.5) * SCALE;
-  const cz3 = (room.cy / H - 0.5) * SCALE;
+  const cz3 = toWorldZ(room.cy, H);
   const pct  = room.area / (W * H);
   const s    = Math.min(Math.sqrt(pct) * 3.2, 1.3);
 
@@ -273,16 +294,15 @@ function RoomFurniture({ room, W, H }) {
 
 // ── 방 바닥 ───────────────────────────────────────────────────────
 function Room({ room, W, H }) {
-  const floorColor = ROOM_FLOOR_COLOR[room.name] || '#D8CEC4';
-  // 2D 텍스처와 동일하게 맞춤
+  const floorColor = ROOM_FLOOR_COLOR[room.name] || '#EDE8DF';
+  // 2D 아키스케치 스타일과 동일: 침실/드레스룸만 나무
   const isWood     = ['공간_침실','공간_드레스룸','공간_다목적공간'].includes(room.name);
   const isTile     = ['공간_화장실','공간_욕실'].includes(room.name);
-  const isDarkTile = room.name === '공간_발코니';
+  const isDarkTile = ['공간_발코니','공간_실외기실'].includes(room.name);
 
   const tex = useMemo(() => {
-    if (isWood)     return makeWoodTexture(floorColor);
-    if (isTile)     return makeTileTexture(false);
-    if (isDarkTile) return makeTileTexture(true);
+    if (isWood)              return makeWoodTexture(floorColor);
+    if (isTile || isDarkTile) return makeTileTexture(isDarkTile);
     return null;
   }, [room.name]);
 
@@ -293,7 +313,7 @@ function Room({ room, W, H }) {
   }, [room.poly, W, H]);
 
   const cx3 = (room.cx / W - 0.5) * SCALE;
-  const cz3 = (room.cy / H - 0.5) * SCALE;
+  const cz3 = toWorldZ(room.cy, H);
   const cfg  = ROOM_CONFIG[room.name] || { label: room.name };
   const label = room.displayName ?? cfg.label ?? room.name;
 
@@ -310,9 +330,9 @@ function Room({ room, W, H }) {
       <Text
         position={[cx3, 0.025, cz3]}
         rotation={[-Math.PI/2, 0, 0]}
-        fontSize={0.19} color="#2A2A2A" fontWeight="bold"
+        fontSize={0.19} color="#1A1A18" fontWeight="bold"
         anchorX="center" anchorY="middle"
-        outlineWidth={0.014} outlineColor="rgba(255,255,255,0.85)"
+        outlineWidth={0.018} outlineColor="rgba(255,255,255,0.92)"
       >
         {label}
       </Text>
@@ -349,25 +369,152 @@ function Window3D({ poly, W, H }) {
   );
 }
 
-function WallSeg({ p1, p2, isExterior }) {
+function WallSeg({ p1, p2, isExterior, hasDoor, isBalconyEdge }) {
   const dx = p2[0]-p1[0], dz = p2[1]-p1[1];
   const len = Math.sqrt(dx*dx+dz*dz);
   if (len < 0.04) return null;
-  const cx = (p1[0]+p2[0])/2, cz = (p1[1]+p2[1])/2;
+
+  const thick = isExterior ? 0.16 : 0.07;
+  const h     = isExterior ? WALL_H : WALL_H * 0.96;
+  const color = isExterior ? '#E0DDD8' : '#EDEAE6';
   const angle = Math.atan2(dz, dx);
-  const thick = isExterior ? 0.15 : 0.08;
-  const h     = isExterior ? WALL_H : WALL_H*0.94;
+  const ux = dx / len, uz = dz / len;
+
+  // 벽 구간을 [from, to] 범위로 렌더링하는 헬퍼
+  const wallPart = (from, to, key) => {
+    const partLen = to - from;
+    if (partLen < 0.04) return null;
+    const pcx = p1[0] + ux * (from + partLen / 2);
+    const pcz = p1[1] + uz * (from + partLen / 2);
+    return (
+      <mesh key={key} position={[pcx, h / 2, pcz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
+        <boxGeometry args={[partLen, h, thick]} />
+        <meshStandardMaterial color={color} roughness={0.55} />
+      </mesh>
+    );
+  };
+
+  // ── 발코니 창호: 중앙 78% 개구, 양 끝 벽만 남김
+  if (isBalconyEdge) {
+    const openW = len * BALCONY_OPEN_RATIO;
+    const sideW = (len - openW) / 2;
+    if (sideW < 0.04) return null;
+    return <>{wallPart(0, sideW, 'L')}{wallPart(len - sideW, len, 'R')}</>;
+  }
+
+  // ── 내부 문: 중앙에 DOOR_W 크기 구멍 + 상단 인방
+  if (hasDoor) {
+    const doorW = Math.min(DOOR_W, len * 0.8);
+    if (len <= doorW * 1.25) return null;  // 벽 전체가 문
+    const side = (len - doorW) / 2;
+    const lintH = h - DOOR_H;              // 인방 높이
+    const lintY = DOOR_H + lintH / 2;
+    const doorCX = p1[0] + ux * (side + doorW / 2);
+    const doorCZ = p1[1] + uz * (side + doorW / 2);
+    return (
+      <>
+        {wallPart(0, side, 'L')}
+        {wallPart(len - side, len, 'R')}
+        {/* 문 상단 인방 */}
+        <mesh position={[doorCX, lintY, doorCZ]} rotation={[0, -angle, 0]} castShadow>
+          <boxGeometry args={[doorW, lintH, thick]} />
+          <meshStandardMaterial color={color} roughness={0.55} />
+        </mesh>
+      </>
+    );
+  }
+
+  // ── 일반 벽
+  const cx = (p1[0] + p2[0]) / 2, cz = (p1[1] + p2[1]) / 2;
   return (
-    <mesh position={[cx, h/2, cz]} rotation={[0,-angle,0]} castShadow receiveShadow>
+    <mesh position={[cx, h / 2, cz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
       <boxGeometry args={[len, h, thick]} />
-      <meshStandardMaterial color={isExterior ? '#E8E6E2' : '#F2F0EE'} roughness={0.55} />
+      <meshStandardMaterial color={color} roughness={0.55} />
     </mesh>
+  );
+}
+
+// ── 스켈레톤 전용 3D 컴포넌트 ─────────────────────────────────────
+// 방 바닥과 동일한 Z 방향 사용 (toWorldZ 적용)
+function normSeg(seg, W, H) {
+  return seg.map(([x, y]) => [(x / W - 0.5) * SCALE, toWorldZ(y, H)]);
+}
+
+function WallSkeletonSeg({ seg, W, H }) {
+  const [p1, p2] = normSeg(seg, W, H);
+  const dx = p2[0]-p1[0], dz = p2[1]-p1[1];
+  const len = Math.sqrt(dx*dx+dz*dz);
+  if (len < 0.02) return null;
+  const angle = Math.atan2(dz, dx);
+  const cx = (p1[0]+p2[0])/2, cz = (p1[1]+p2[1])/2;
+  return (
+    <mesh position={[cx, WALL_H/2, cz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
+      <boxGeometry args={[len, WALL_H, 0.13]} />
+      <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+    </mesh>
+  );
+}
+
+function DoorSeg3D({ seg, W, H }) {
+  const [p1, p2] = normSeg(seg, W, H);
+  const dx = p2[0]-p1[0], dz = p2[1]-p1[1];
+  const len = Math.sqrt(dx*dx+dz*dz);
+  if (len < 0.02) return null;
+  const angle = Math.atan2(dz, dx);
+  const cx = (p1[0]+p2[0])/2, cz = (p1[1]+p2[1])/2;
+  const doorH = WALL_H * 0.84;
+  const lintH = WALL_H - doorH;
+  // 힌지 기준 문짝 (p1에서 90도 열린 방향)
+  const nx = -dz/len, nz = dx/len;
+  const panelCX = p1[0] + nx * len * 0.5;
+  const panelCZ = p1[1] + nz * len * 0.5;
+  return (
+    <group>
+      {/* 인방 (lintel) */}
+      <mesh position={[cx, doorH + lintH/2, cz]} rotation={[0, -angle, 0]} castShadow>
+        <boxGeometry args={[len, lintH, 0.13]} />
+        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+      </mesh>
+      {/* 문짝 패널 (90도 열린 상태) */}
+      <mesh position={[panelCX, doorH/2, panelCZ]} rotation={[0, -(angle + Math.PI/2), 0]}>
+        <boxGeometry args={[len * 0.95, doorH * 0.95, 0.04]} />
+        <meshStandardMaterial color="#C8B48A" roughness={0.48} transparent opacity={0.82} />
+      </mesh>
+    </group>
+  );
+}
+
+function WindowSeg3D({ seg, W, H }) {
+  const [p1, p2] = normSeg(seg, W, H);
+  const dx = p2[0]-p1[0], dz = p2[1]-p1[1];
+  const len = Math.sqrt(dx*dx+dz*dz);
+  if (len < 0.02) return null;
+  const angle = Math.atan2(dz, dx);
+  const cx = (p1[0]+p2[0])/2, cz = (p1[1]+p2[1])/2;
+  const sillH = WALL_H * 0.22;
+  const headH = WALL_H * 0.12;
+  const winH  = WALL_H - sillH - headH;
+  return (
+    <group>
+      <mesh position={[cx, sillH/2, cz]} rotation={[0, -angle, 0]} castShadow>
+        <boxGeometry args={[len, sillH, 0.13]} />
+        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+      </mesh>
+      <mesh position={[cx, sillH + winH + headH/2, cz]} rotation={[0, -angle, 0]} castShadow>
+        <boxGeometry args={[len, headH, 0.13]} />
+        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+      </mesh>
+      <mesh position={[cx, sillH + winH/2, cz]} rotation={[0, -angle, 0]}>
+        <boxGeometry args={[len * 0.94, winH, 0.04]} />
+        <meshStandardMaterial color="#B8D8F0" transparent opacity={0.38} />
+      </mesh>
+    </group>
   );
 }
 
 // ── 씬 ───────────────────────────────────────────────────────────
 function Scene({ data }) {
-  const { imgWidth:W, imgHeight:H, walls, windows, rooms } = data;
+  const { imgWidth:W, imgHeight:H, walls, windows, doors = [], rooms, isSkeleton = false } = data;
   const bounds = useMemo(() => calcBounds(rooms, W, H), [rooms, W, H]);
 
   // 오픈플랜 그룹 맵 (roomName → groupIndex)
@@ -379,10 +526,12 @@ function Scene({ data }) {
 
   const wallSegs = useMemo(() => {
     const counts={}, segs={}, edgeRooms={};
-    for (const room of rooms) {
-      const pts = normalize(room.poly, W, H);
-      for (let i=0; i<pts.length; i++) {
-        const p1=pts[i], p2=pts[(i+1)%pts.length];
+    // 정규화된 폴리곤 미리 계산 (공간 체크용)
+    const normRooms = rooms.map(r => ({ name: r.name, poly: normalize(r.poly, W, H) }));
+
+    for (const room of normRooms) {
+      for (let i=0; i<room.poly.length; i++) {
+        const p1=room.poly[i], p2=room.poly[(i+1)%room.poly.length];
         const k=edgeKey(p1,p2);
         counts[k]=(counts[k]||0)+1;
         segs[k]={p1,p2};
@@ -390,14 +539,44 @@ function Scene({ data }) {
         edgeRooms[k].push(room.name);
       }
     }
+
     return Object.entries(segs)
-      .filter(([k]) => {
-        if (counts[k] === 1) return true;
-        const names = edgeRooms[k] ?? [];
-        const isOpenPlan = OPEN_PLAN_GROUPS.some(g => names.every(n => g.includes(n)));
-        return !isOpenPlan;
+      .map(([k,{p1,p2}])=>{
+        const isExteriorByCount = counts[k] === 1;
+        const roomNames = edgeRooms[k] ?? [];
+
+        // 공유 엣지 오픈플랜 체크
+        if (!isExteriorByCount) {
+          const isOpen = OPEN_PLAN_GROUPS.some(g => roomNames.every(n => g.includes(n)));
+          if (isOpen) return null;
+        }
+
+        // gap으로 분리된 오픈플랜 경계 공간 체크 (거실-주방 등)
+        if (isExteriorByCount) {
+          const mx = (p1[0]+p2[0])/2, mz = (p1[1]+p2[1])/2;
+          const dx = p2[0]-p1[0], dz = p2[1]-p1[1];
+          const len = Math.sqrt(dx*dx+dz*dz);
+          if (len >= 0.01) {
+            const nx = -dz/len, nz = dx/len;
+            const OFF = 0.10;
+            const r1 = normRooms.find(r => pointInPoly([mx+nx*OFF, mz+nz*OFF], r.poly))?.name;
+            const r2 = normRooms.find(r => pointInPoly([mx-nx*OFF, mz-nz*OFF], r.poly))?.name;
+            if (r1 && r2 && r1 !== r2) {
+              const isOpen = OPEN_PLAN_GROUPS.some(g => g.includes(r1) && g.includes(r2));
+              if (isOpen) return null;
+              // gap으로 분리된 내부 경계 → 얇은 내벽으로 처리
+              return { p1, p2, isExterior: false, hasDoor: false, isBalconyEdge: false };
+            }
+          }
+        }
+
+        const isExterior = isExteriorByCount;
+        const hasBalcony = roomNames.some(n => BALCONY_TYPES.includes(n));
+        const hasDoor    = !isExterior && !hasBalcony && roomNames.length >= 2;
+        const isBalconyEdge = !isExterior && hasBalcony;
+        return { p1, p2, isExterior, hasDoor, isBalconyEdge };
       })
-      .map(([k,{p1,p2}])=>({p1,p2,isExterior:counts[k]===1}));
+      .filter(Boolean);
   }, [rooms, W, H, openPlanMap]);
 
   // 외곽 윤곽선 폴리곤 (배경을 아파트 형태로)
@@ -444,13 +623,14 @@ function Scene({ data }) {
         far={200}
       />
 
-      <color attach="background" args={['#F2F0EC']} />
+      {/* 캔버스 배경 — 2D와 동일한 중립 베이지 */}
+      <color attach="background" args={['#F2F2F0']} />
 
       {/* 조명 — iso3d 스타일 (강한 방향광 + 부드러운 앰비언트) */}
-      <ambientLight intensity={0.85} />
+      <ambientLight intensity={0.92} />
       <directionalLight
         position={[bounds.cx+10, 24, bounds.cz+6]}
-        intensity={1.5}
+        intensity={1.4}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-near={0.5}
@@ -458,19 +638,19 @@ function Scene({ data }) {
         shadow-camera-left={-22}  shadow-camera-right={22}
         shadow-camera-top={22}    shadow-camera-bottom={-22}
       />
-      <directionalLight position={[bounds.cx-8, 12, bounds.cz-6]} intensity={0.28} color="#DDE8F8" />
-      <hemisphereLight skyColor="#D8EAF8" groundColor="#EDE8E0" intensity={0.38} />
+      <directionalLight position={[bounds.cx-8, 12, bounds.cz-6]} intensity={0.22} color="#EEF0F4" />
+      <hemisphereLight skyColor="#F0EFEC" groundColor="#E8E4DE" intensity={0.42} />
 
-      {/* 배경 바닥 — 아파트 외곽 형태 */}
+      {/* 배경 바닥 — 아파트 외곽 형태 (방 색상과 같은 아이보리) */}
       {outerPoly ? (
         <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.01,0]} receiveShadow>
           <shapeGeometry args={[makeShape(outerPoly)]} />
-          <meshStandardMaterial color="#EDE9E3" roughness={0.94} />
+          <meshStandardMaterial color="#F5F0E8" roughness={0.88} />
         </mesh>
       ) : (
         <mesh rotation={[-Math.PI/2,0,0]} position={[bounds.cx,-0.01,bounds.cz]} receiveShadow>
           <planeGeometry args={[bounds.w+2.5, bounds.d+2.5]} />
-          <meshStandardMaterial color="#EDE9E3" roughness={0.94} />
+          <meshStandardMaterial color="#F5F0E8" roughness={0.88} />
         </mesh>
       )}
 
@@ -480,13 +660,21 @@ function Scene({ data }) {
       {/* 가구 */}
       {rooms.map((r,i) => <RoomFurniture key={i} room={r} W={W} H={H} />)}
 
-      {/* 창호 */}
-      {windows.map((poly,i) => <Window3D key={i} poly={poly} W={W} H={H} />)}
-
-      {/* 벽체 — 항상 wallSegs 사용 (오픈플랜 내부벽 필터링 적용) */}
-      {wallSegs.map(({p1,p2,isExterior},i) => (
-        <WallSeg key={i} p1={p1} p2={p2} isExterior={isExterior} />
-      ))}
+      {/* 벽/창호/문 — skeleton vs 레거시 분기 */}
+      {isSkeleton ? (
+        <>
+          {walls.map((seg, i) => <WallSkeletonSeg key={i} seg={seg} W={W} H={H} />)}
+          {doors.map((seg, i) => <DoorSeg3D key={i} seg={seg} W={W} H={H} />)}
+          {windows.map((seg, i) => <WindowSeg3D key={i} seg={seg} W={W} H={H} />)}
+        </>
+      ) : (
+        <>
+          {windows.map((poly, i) => <Window3D key={i} poly={poly} W={W} H={H} />)}
+          {wallSegs.map(({ p1, p2, isExterior, hasDoor, isBalconyEdge }, i) => (
+            <WallSeg key={i} p1={p1} p2={p2} isExterior={isExterior} hasDoor={hasDoor} isBalconyEdge={isBalconyEdge} />
+          ))}
+        </>
+      )}
 
       <OrbitControls
         enableDamping dampingFactor={0.07}

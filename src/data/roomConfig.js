@@ -15,25 +15,27 @@ export const ROOM_CONFIG = {
   공간_드레스룸:   { fill: '#FFF9C4', border: '#FFF176', label: '드레스룸',icon: '👗' },
   공간_다목적공간: { fill: '#EFEBE9', border: '#BCAAA4', label: '다목적',  icon: '📦' },
   공간_실외기실:   { fill: '#ECEFF1', border: '#B0BEC5', label: '실외기실',icon: '❄️' },
+  공간_싱크대:     { fill: '#D6EAF8', border: '#5DADE2', label: '싱크대',  icon: '🚰' },
+  공간_가스레인지: { fill: '#FDEBD0', border: '#E59866', label: '가스레인지', icon: '🔥' },
   공간_기타:       { fill: '#F5F5F5', border: '#BDBDBD', label: '기타',    icon: '📌' },
   공간_엘리베이터: { fill: '#E8EAF6', border: '#9FA8DA', label: '엘리베이터', icon: '🔼' },
   공간_엘리베이터홀:{ fill: '#E8EAF6', border: '#9FA8DA', label: 'EV홀',  icon: '🔼' },
   공간_계단실:     { fill: '#ECEFF1', border: '#90A4AE', label: '계단실',  icon: '🪜' },
 };
 
-// 스타일 뷰 바닥재 색상 (2D 텍스처 기준색)
+// 스타일 뷰 바닥재 색상 — 2D ASKI_FLOOR와 동일한 파스텔 톤
 export const ROOM_FLOOR_COLOR = {
-  공간_거실:       '#EEE6D0',  // 밝은 크림 (아키스케치 스타일)
-  공간_주방:       '#EEE6D0',  // 거실과 동일 (오픈 플랜)
-  공간_현관:       '#D8D0C4',  // 중간 회색
-  공간_침실:       '#C8A060',  // 따뜻한 나무색
-  공간_드레스룸:   '#C4A060',
-  공간_다목적공간: '#C8A862',
-  공간_화장실:     '#ECEAE6',  // 밝은 타일
-  공간_욕실:       '#ECEAE6',
-  공간_발코니:     '#D8D6D2',  // 밝은 연회색 타일
-  공간_실외기실:   '#D0D4D8',
-  공간_기타:       '#DDDAD6',
+  공간_거실:       '#F5F0E8',  // 아이보리 화이트
+  공간_주방:       '#F5F0E8',
+  공간_현관:       '#EDE8DC',
+  공간_침실:       '#E8D5A8',  // 연한 허니-밀색
+  공간_드레스룸:   '#E5D09E',
+  공간_다목적공간: '#E8D5A8',
+  공간_화장실:     '#EDEDED',  // 연한 회색 타일
+  공간_욕실:       '#EDEDED',
+  공간_발코니:     '#DCDCD8',  // 연한 중성 회색
+  공간_실외기실:   '#D8D8D4',
+  공간_기타:       '#E8E8E4',
 };
 
 export const STRUCT_COLORS = {

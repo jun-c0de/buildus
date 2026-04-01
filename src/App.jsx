@@ -9,6 +9,7 @@ import Marketplace from './pages/Marketplace';
 import Community from './pages/Community';
 import AIChat from './pages/AIChat';
 import FloorPlanLabeler from './pages/FloorPlanLabeler';
+import FloorPlanTracer from './pages/FloorPlanTracer';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="community" element={<Community />} />
           <Route path="aichat" element={<AIChat />} />
           <Route path="label" element={<FloorPlanLabeler />} />
+          <Route path="trace" element={<FloorPlanTracer />} />
         </Route>
       </Routes>
     </BrowserRouter>

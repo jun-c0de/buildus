@@ -6,13 +6,32 @@ export function parseLabels(strData, spaData) {
 
   const walls = [], windows = [], doors = [], rooms = [];
 
-  for (const ann of strData.annotations) {
-    const name = cats_str[ann.category_id];
-    const poly = segToPoly(ann.segmentation);
-    if (!poly) continue;
-    if (name === '구조_벽체')   walls.push(poly);
-    else if (name === '구조_창호')   windows.push(poly);
-    else if (name === '구조_출입문') doors.push(poly);
+  // ── 새 포맷: structure_skeleton (노드+엣지 그래프) ──
+  if (strData.structure_skeleton) {
+    const nodeMap = new Map(strData.structure_skeleton.nodes.map(n => [n.id, n]));
+    for (const edge of strData.structure_skeleton.edges) {
+      const n1 = nodeMap.get(edge.from), n2 = nodeMap.get(edge.to);
+      if (!n1 || !n2) continue;
+      // 엣지를 2점 폴리곤으로 변환
+      const seg = [[n1.x, n1.y], [n2.x, n2.y]];
+      const type = edge.type ?? 'wall';
+      if (type === 'wall')                    walls.push(seg);
+      else if (type === 'window')             windows.push(seg);
+      else if (type === 'door' || type === 'sliding') {
+        seg._type = type;
+        doors.push(seg);
+      }
+    }
+  } else {
+    // ── 구 포맷: COCO annotations ──
+    for (const ann of strData.annotations) {
+      const name = cats_str[ann.category_id];
+      const poly = segToPoly(ann.segmentation);
+      if (!poly) continue;
+      if (name === '구조_벽체')        walls.push(poly);
+      else if (name === '구조_창호')   windows.push(poly);
+      else if (name === '구조_출입문') doors.push(poly);
+    }
   }
 
   for (const ann of spaData.annotations) {
@@ -31,7 +50,7 @@ export function parseLabels(strData, spaData) {
     rooms.push({ id: ann.id, name, displayName, poly, cx, cy, area, area_m2: ann.area_m2 ?? null });
   }
 
-  return { imgWidth: W, imgHeight: H, walls, windows, doors, rooms };
+  return { imgWidth: W, imgHeight: H, walls, windows, doors, rooms, isSkeleton: !!strData.structure_skeleton };
 }
 
 function segToPoly(seg) {
