@@ -206,6 +206,7 @@ export default function CostAnalyzer() {
   const [selfMode,      setSelfMode]     = useState(false);
   const [selectedMats,  setSelectedMats] = useState({});  // { procCode: materialObj }
   const [pickerProc,    setPickerProc]   = useState(null); // processData entry | null
+  const [selectedRooms, setSelectedRooms] = useState({});  // { 거실: true, 욕실: false, ... }
 
   // 공정 목록 로드 후 checked/grades 초기화
   useEffect(() => {
@@ -243,33 +244,57 @@ export default function CostAnalyzer() {
   const areaRef = useMemo(() => getAreaByPyeong(pyeong), [pyeong]);
   const spaces  = areaRef?.공간별면적 ?? {};
 
+  // selectedRooms 초기화 (spaces 바뀔 때)
+  useEffect(() => {
+    const keys = Object.keys(spaces);
+    if (!keys.length) return;
+    setSelectedRooms(prev =>
+      Object.fromEntries(keys.map(k => [k, prev[k] ?? true]))
+    );
+  }, [JSON.stringify(spaces)]);  // eslint-disable-line
+
+  // 셀프 모드에서 선택된 공간만의 면적
+  const selfSpaces = useMemo(() =>
+    Object.fromEntries(Object.entries(spaces).filter(([k]) => selectedRooms[k] !== false))
+  , [spaces, selectedRooms]);
+
   // 공정별 비용 계산
   const processData = useMemo(() => allProcs.map(p => {
-    const base  = estimateCostByProcess(p, spaces);
     const mult  = GRADE_MULT[grades[p.공정코드]] ?? 1.0;
+    // 자동 견적 (전체 공간)
+    const base  = estimateCostByProcess(p, spaces);
     const cost  = Math.round(base * mult);
-    const applicableArea = getProcessArea(p.공정코드, spaces);
+    // 셀프 견적용 면적 (선택 공간)
+    const selfArea = getProcessArea(p.공정코드, selfSpaces);
+    const selfBase = estimateCostByProcess(p, selfSpaces);
+    const selfAreaCost = Math.round(selfBase * mult); // 자재 미선택 시 자동계산 but 선택공간만
+    // 자재 선택 시 비용
     const selMat = selectedMats[p.공정코드];
-    const selfCost = selMat && applicableArea > 0 && selMat.price_num > 0
-      ? Math.round(selMat.price_num * applicableArea)
+    const selfMatCost = selMat && selfArea > 0 && selMat.price_num > 0
+      ? Math.round(selMat.price_num * selfArea)
       : null;
     return {
       ...p,
-      icon:          PROCESS_ICONS[p.공정코드] ?? '⚙️',
+      icon:         PROCESS_ICONS[p.공정코드] ?? '⚙️',
       cost,
-      selfCost,
-      applicableArea,
-      materials:     getProcessMaterials(p.공정코드),
-      grade:         grades[p.공정코드] ?? '중급',
-      checked:       checked[p.공정코드] ?? true,
-      areaLabel:     getProcessAreaLabel(p.공정코드, spaces),
-      selectedMat:   selMat ?? null,
+      selfAreaCost,
+      selfMatCost,
+      selfArea,
+      materials:    getProcessMaterials(p.공정코드),
+      grade:        grades[p.공정코드] ?? '중급',
+      checked:      checked[p.공정코드] ?? true,
+      areaLabel:    getProcessAreaLabel(p.공정코드, spaces),
+      selfAreaLabel: getProcessAreaLabel(p.공정코드, selfSpaces),
+      selectedMat:  selMat ?? null,
     };
-  }), [allProcs, spaces, grades, checked, selectedMats]);
+  }), [allProcs, spaces, selfSpaces, grades, checked, selectedMats]);
 
   const total = processData.reduce((s, p) => {
     if (!p.checked) return s;
-    if (selfMode && p.selfCost != null) return s + p.selfCost;
+    if (selfMode) {
+      if (p.selfMatCost != null) return s + p.selfMatCost;
+      return s + p.selfAreaCost;
+    }
     return s + p.cost;
   }, 0);
   const marketTotal = Math.round(total * 1.7);
@@ -295,7 +320,7 @@ export default function CostAnalyzer() {
       {pickerProc && (
         <MaterialPickerModal
           proc={pickerProc}
-          spaces={spaces}
+          spaces={selfMode ? selfSpaces : spaces}
           onSelect={mat => {
             setSelectedMats(prev => ({ ...prev, [pickerProc.공정코드]: mat }));
             setPickerProc(null);
@@ -459,14 +484,63 @@ export default function CostAnalyzer() {
 
               {selfMode && (
                 <div style={{ marginTop: 10, fontSize: 12, color: '#64748B', background: '#FFFBEB', borderRadius: 8, padding: '8px 12px', border: '1px solid #FDE68A' }}>
-                  각 공정의 <strong>자재 선택</strong> 버튼을 눌러 원하는 자재를 고르면 자재 단가 × 면적으로 비용이 계산돼요
+                  원하는 <strong>공간을 선택</strong>하고, 각 공정의 <strong>자재선택</strong> 버튼으로 구체적인 자재를 고르면 자재 단가 × 면적으로 비용이 계산돼요
                 </div>
               )}
             </div>
 
+            {/* 셀프 견적 — 공간 선택 */}
+            {selfMode && Object.keys(spaces).length > 0 && (
+              <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: '16px 20px', marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1A1A1A' }}>🏠 어느 공간을 리모델링하나요?</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setSelectedRooms(Object.fromEntries(Object.keys(spaces).map(k => [k, true])))}
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 5, border: '1px solid #E2E8F0', background: 'white', color: '#475569', cursor: 'pointer' }}>전체 선택</button>
+                    <button onClick={() => setSelectedRooms(Object.fromEntries(Object.keys(spaces).map(k => [k, false])))}
+                      style={{ fontSize: 11, padding: '3px 8px', borderRadius: 5, border: '1px solid #E2E8F0', background: 'white', color: '#94A3B8', cursor: 'pointer' }}>전체 해제</button>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {Object.entries(spaces).map(([room, area]) => {
+                    const on = selectedRooms[room] !== false;
+                    const icon = { 거실:'🛋️', 안방:'🛏️', 작은방:'🚪', 욕실:'🚿', 주방:'🍳', 베란다:'🌿' }[room] ?? '📦';
+                    return (
+                      <div key={room} onClick={() => setSelectedRooms(prev => ({ ...prev, [room]: !on }))}
+                        style={{
+                          padding: '12px 10px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
+                          border: `2px solid ${on ? '#3B82F6' : '#E2E8F0'}`,
+                          background: on ? '#EFF6FF' : '#FAFAFA',
+                          transition: 'all 0.12s',
+                        }}
+                      >
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: on ? '#1D4ED8' : '#94A3B8' }}>{room}</div>
+                        <div style={{ fontSize: 11, color: on ? '#3B82F6' : '#CBD5E1', marginTop: 2 }}>{area}㎡</div>
+                        <div style={{ marginTop: 6 }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
+                            background: on ? '#3B82F6' : '#E2E8F0',
+                            color: on ? 'white' : '#94A3B8',
+                          }}>{on ? '포함' : '제외'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {Object.values(selectedRooms).filter(Boolean).length === 0 && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: '#F59E0B', background: '#FFFBEB', padding: '8px 12px', borderRadius: 8, border: '1px solid #FDE68A' }}>
+                    공간을 하나 이상 선택해야 견적이 계산돼요
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {processData.map(p => {
-                const displayCost = selfMode && p.selfCost != null ? p.selfCost : p.cost;
+                const displayCost = selfMode
+                  ? (p.selfMatCost != null ? p.selfMatCost : p.selfAreaCost)
+                  : p.cost;
                 const hasSelfMat = selfMode && p.selectedMat;
                 return (
                   <div key={p.공정코드}>
@@ -503,7 +577,9 @@ export default function CostAnalyzer() {
                         <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
                           {hasSelfMat
                             ? <span style={{ color: '#16A34A', fontWeight: 600 }}>✓ {p.selectedMat.name}</span>
-                            : p.areaLabel
+                            : selfMode
+                              ? (p.selfArea > 0 ? p.selfAreaLabel : <span style={{ color: '#F59E0B' }}>해당 공간 미포함</span>)
+                              : p.areaLabel
                           }
                         </div>
                       </div>
@@ -545,9 +621,9 @@ export default function CostAnalyzer() {
                         <div style={{ fontWeight: 700, fontSize: 13, color: p.checked ? (hasSelfMat ? '#16A34A' : '#3B82F6') : '#CBD5E1' }}>
                           {p.checked && displayCost > 0 ? `${(displayCost / 10000).toFixed(0)}만원` : '-'}
                         </div>
-                        {hasSelfMat && p.selfCost != null && (
+                        {hasSelfMat && p.selfMatCost != null && (
                           <div style={{ fontSize: 10, color: '#94A3B8', textDecoration: 'line-through' }}>
-                            자동 {(p.cost / 10000).toFixed(0)}만
+                            자동 {(p.selfAreaCost / 10000).toFixed(0)}만
                           </div>
                         )}
                       </div>
@@ -640,7 +716,9 @@ export default function CostAnalyzer() {
               {/* 총 견적 */}
               <div style={{ background: '#1A1A1A', borderRadius: 16, padding: 24, color: 'white', marginBottom: 12 }}>
                 <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 6 }}>
-                  {selfMode ? '셀프 견적 (선택 자재 기준)' : '예상 견적 (공정별 면적 기반)'}
+                  {selfMode
+                    ? `셀프 견적 · ${Object.values(selectedRooms).filter(Boolean).length}개 공간 기준`
+                    : '예상 견적 (공정별 면적 기반)'}
                 </div>
                 <div style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-1px', marginBottom: 2 }}>
                   {(total / 10000).toFixed(0)}<span style={{ fontSize: 18, fontWeight: 600, opacity: 0.7 }}>만원</span>
@@ -668,14 +746,24 @@ export default function CostAnalyzer() {
               {/* 공간별 면적 요약 */}
               {areaRef && (
                 <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: 16, marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 10 }}>공간별 면적 ({areaRef.평형대} 기준)</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 10 }}>
+                    공간별 면적 ({areaRef.평형대} 기준)
+                    {selfMode && <span style={{ marginLeft: 6, fontSize: 10, color: '#3B82F6' }}>● 포함 공간만 집계</span>}
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {Object.entries(spaces).map(([k, v]) => (
-                      <div key={k} style={{ background: '#F8FAFC', borderRadius: 6, padding: '6px 8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: '#94A3B8' }}>{k}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{v}㎡</div>
-                      </div>
-                    ))}
+                    {Object.entries(spaces).map(([k, v]) => {
+                      const included = !selfMode || selectedRooms[k] !== false;
+                      return (
+                        <div key={k} style={{
+                          background: included ? '#EFF6FF' : '#F8FAFC',
+                          borderRadius: 6, padding: '6px 8px', textAlign: 'center',
+                          opacity: included ? 1 : 0.4,
+                        }}>
+                          <div style={{ fontSize: 10, color: included ? '#3B82F6' : '#94A3B8' }}>{k}</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: included ? '#1D4ED8' : '#CBD5E1' }}>{v}㎡</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -683,8 +771,10 @@ export default function CostAnalyzer() {
               {/* 공정별 요약 */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: 18, marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 12 }}>공정별 비용</div>
-                {processData.filter(p => p.checked && (selfMode ? (p.selfCost ?? p.cost) > 0 : p.cost > 0)).map(p => {
-                  const displayCost = selfMode && p.selfCost != null ? p.selfCost : p.cost;
+                {processData.filter(p => p.checked && (selfMode ? (p.selfMatCost != null ? p.selfMatCost : p.selfAreaCost) > 0 : p.cost > 0)).map(p => {
+                  const displayCost = selfMode
+                    ? (p.selfMatCost != null ? p.selfMatCost : p.selfAreaCost)
+                    : p.cost;
                   const hasSelfMat = selfMode && p.selectedMat;
                   return (
                     <div key={p.공정코드} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, alignItems: 'center' }}>
