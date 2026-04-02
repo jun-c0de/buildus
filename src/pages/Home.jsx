@@ -201,8 +201,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
             {FEATURES.map(({ icon, color, bg, title, desc, sub, to, cta }) => (
               <div key={title}
-                onClick={() => navigate(to)}
-                style={{ background: 'white', borderRadius: 18, padding: '28px 28px 24px', border: '1px solid #E2E8F0', cursor: 'pointer', transition: 'all 0.18s' }}
+                style={{ background: 'white', borderRadius: 18, padding: '28px 28px 24px', border: '1px solid #E2E8F0', transition: 'all 0.18s' }}
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.09)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
               >
@@ -212,7 +211,7 @@ export default function Home() {
                     <div style={{ fontWeight: 800, fontSize: 17, color: '#1A1A1A', marginBottom: 6 }}>{title}</div>
                     <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.65, marginBottom: 10 }}>{desc}</div>
                     <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, marginBottom: 14 }}>{sub}</div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: color }}>{cta} →</span>
+                    <span onClick={() => navigate(to)} style={{ fontSize: 13, fontWeight: 700, color: color, cursor: 'pointer' }}>{cta} →</span>
                   </div>
                 </div>
               </div>
@@ -250,8 +249,7 @@ export default function Home() {
               },
             ].map(({ step, icon, title, desc, detail }) => (
               <div key={step}
-                onClick={() => navigate('/cost')}
-                style={{ background: '#FAFAF8', borderRadius: 16, padding: '32px 24px', border: '1px solid #F1F5F9', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s' }}
+                style={{ background: '#FAFAF8', borderRadius: 16, padding: '32px 24px', border: '1px solid #F1F5F9', textAlign: 'left', transition: 'all 0.15s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.07)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = '#FAFAF8'; e.currentTarget.style.boxShadow = 'none'; }}
               >
