@@ -446,6 +446,24 @@ export default function Marketplace() {
             style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #E2E8F0', background: 'white', cursor: page===totalPages?'not-allowed':'pointer', color: page===totalPages?'#CBD5E1':'#475569', fontSize: 13 }}>→</button>
         </div>
       )}
+
+      {/* 플로팅 자재 추가 버튼 */}
+      <button
+        onClick={openAdd}
+        title="내 자재 추가"
+        style={{
+          position: 'fixed', bottom: 32, right: 32,
+          width: 56, height: 56, borderRadius: '50%',
+          background: '#3B82F6', color: 'white',
+          border: 'none', cursor: 'pointer',
+          fontSize: 28, fontWeight: 300,
+          boxShadow: '0 4px 20px rgba(59,130,246,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 200, transition: 'transform 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+      >+</button>
     </div>
   );
 }

@@ -1,30 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
+import { generateResponse } from '../utils/aiEngine';
 
 const QUICK_QUESTIONS = [
-  '25평 전체 인테리어 비용이 얼마나 될까요?',
+  '25평 전체 인테리어 비용이 얼마에요?',
+  '인테리어 공정 순서 알려줘',
   '욕실 방수 꼭 해야 하나요?',
   '실크벽지랑 합지벽지 차이가 뭔가요?',
-  '타일 본드 종류가 중요한가요?',
-  '도배 셀프로 해도 될까요?',
+  '혼자 할 수 있는 공정이 뭐가 있어요?',
 ];
 
 const WELCOME = {
   id: 0,
   role: 'assistant',
-  text: '안녕하세요! 빌드어스 AI 상담사입니다 👋\n\n인테리어 견적, 자재 선택, 공정 순서, 셀프 시공 난이도 등 무엇이든 물어보세요.\n자재 DB 1,304개 + 공정 데이터 기반으로 답변해드립니다.',
+  text: '안녕하세요! 빌드어스 AI 상담사입니다 👋\n\n인테리어 견적, 공정 순서, 자재 추천, 셀프 시공 난이도 등을 물어보세요.\n자재 DB 1,304개 + 공정 13개 데이터 기반으로 답변해드립니다.',
   time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
 };
 
-function getCustomMaterials() {
-  try { return JSON.parse(localStorage.getItem('buildus_custom_materials') || '[]'); }
-  catch { return []; }
-}
-
 export default function AIChat() {
-  const [messages,  setMessages]  = useState([WELCOME]);
-  const [input,     setInput]     = useState('');
-  const [isTyping,  setIsTyping]  = useState(false);
-  const [error,     setError]     = useState('');
+  const [messages, setMessages] = useState([WELCOME]);
+  const [input,    setInput]    = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
@@ -32,42 +27,26 @@ export default function AIChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  async function send(text) {
+  function send(text) {
     const msg = (text ?? input).trim();
     if (!msg || isTyping) return;
     setInput('');
-    setError('');
 
     const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    const userMsg = { id: Date.now(), role: 'user', text: msg, time };
-    const nextMsgs = [...messages, userMsg];
-    setMessages(nextMsgs);
+    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: msg, time }]);
     setIsTyping(true);
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: nextMsgs,
-          customMaterials: getCustomMaterials(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? '서버 오류');
-
+    // 로컬 엔진 응답 (약간의 딜레이로 자연스럽게)
+    setTimeout(() => {
+      const response = generateResponse(msg);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         role: 'assistant',
-        text: data.text,
+        text: response,
         time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
       }]);
-    } catch (err) {
-      setError(err.message);
-    } finally {
       setIsTyping(false);
-    }
+    }, 600);
   }
 
   function handleKey(e) {
@@ -85,7 +64,7 @@ export default function AIChat() {
             <div style={{ fontWeight: 800, fontSize: 16, color: '#1A1A1A' }}>빌드어스 AI 상담</div>
             <div style={{ fontSize: 12, color: '#10B981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-              자재 DB · 공정 데이터 기반
+              자재 DB · 공정 데이터 기반 응답
             </div>
           </div>
         </div>
@@ -98,13 +77,13 @@ export default function AIChat() {
             {msg.role === 'assistant' && (
               <div style={{ width: 32, height: 32, borderRadius: 10, background: '#1A1A1A', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
             )}
-            <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 4, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               <div style={{
                 padding: '12px 16px',
                 borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                 background: msg.role === 'user' ? '#1A1A1A' : 'white',
                 color: msg.role === 'user' ? 'white' : '#1A1A1A',
-                fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-line',
+                fontSize: 14, lineHeight: 1.75, whiteSpace: 'pre-line',
                 border: msg.role === 'assistant' ? '1px solid #E2E8F0' : 'none',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
               }}>{msg.text}</div>
@@ -120,20 +99,13 @@ export default function AIChat() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: '#1A1A1A', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
             <div style={{ padding: '14px 18px', borderRadius: '18px 18px 18px 4px', background: 'white', border: '1px solid #E2E8F0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', gap: 4, alignItems: 'center' }}>
-              {[0, 1, 2].map(i => (
-                <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#94A3B8', animation: 'bounce 1.2s infinite', animationDelay: `${i * 0.2}s`, display: 'inline-block' }} />
+              {[0,1,2].map(i => (
+                <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#94A3B8', animation: 'bounce 1.2s infinite', animationDelay: `${i*0.2}s`, display: 'inline-block' }} />
               ))}
               <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}`}</style>
             </div>
           </div>
         )}
-
-        {error && (
-          <div style={{ textAlign: 'center', padding: '8px 16px', background: '#FEF2F2', borderRadius: 10, fontSize: 13, color: '#EF4444' }}>
-            ⚠️ {error}
-          </div>
-        )}
-
         <div ref={bottomRef} />
       </div>
 
@@ -163,7 +135,7 @@ export default function AIChat() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="인테리어에 대해 무엇이든 물어보세요..."
+            placeholder="예: 25평 도배 비용이 얼마에요? / 타일 공정 순서 알려줘"
             rows={1}
             style={{ flex: 1, border: 'none', outline: 'none', resize: 'none', fontSize: 14, lineHeight: 1.5, color: '#1A1A1A', background: 'transparent', fontFamily: 'inherit', maxHeight: 120, overflowY: 'auto' }}
           />
