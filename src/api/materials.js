@@ -50,28 +50,45 @@ function formatPrice(가격) {
 }
 
 export function getMaterials() {
-  const official = materialsData.map(m => ({
-    ...m,
-    category:  [m.대분류, m.중분류, m.소분류].filter(Boolean).join(' > '),
-    name:      m.품명,
-    brand:     m.브랜드 || m.제조사 || '',
-    unit:      m.단위,
-    grade:     m.등급 || '-',
-    price:     formatPrice(m.가격),
-    price_num: m.가격?.판매가 ?? m.가격?.쿠팡가 ?? m.가격?.네이버최저가 ?? 0,
-  }));
-  const admin = loadAdminMaterials().map(m => ({
-    ...m,
-    category:  [m.대분류, m.중분류].filter(Boolean).join(' > '),
-    name:      m.품명,
-    brand:     m.브랜드 || '',
-    unit:      m.단위 || '',
-    grade:     m.등급 || '-',
-    price:     m.가격_판매가 ? `${Number(m.가격_판매가).toLocaleString()}원` : '-',
-    price_num: m.가격_판매가 ? Number(m.가격_판매가) : 0,
-    isAdminAdded: true,
-  }));
-  return [...admin, ...official];
+  const adminList  = loadAdminMaterials();
+  const adminMap   = new Map(adminList.map(m => [m.자재코드, m]));
+  const officialCodes = new Set(materialsData.map(m => m.자재코드));
+
+  // 공식 자재 + 관리자 오버라이드 병합
+  const officialFormatted = materialsData.map(m => {
+    const ov = adminMap.get(m.자재코드);
+    const merged = ov ? { ...m, ...ov, isOverridden: true } : m;
+    const priceNum = ov?.가격_판매가 != null
+      ? Number(ov.가격_판매가)
+      : (m.가격?.판매가 ?? m.가격?.쿠팡가 ?? m.가격?.네이버최저가 ?? 0);
+    return {
+      ...merged,
+      category:  [merged.대분류, merged.중분류, merged.소분류].filter(Boolean).join(' > '),
+      name:      merged.품명,
+      brand:     merged.브랜드 || merged.제조사 || '',
+      unit:      merged.단위,
+      grade:     merged.등급 || '-',
+      price:     priceNum ? `${priceNum.toLocaleString()}원` : formatPrice(m.가격),
+      price_num: priceNum,
+    };
+  });
+
+  // 관리자가 새로 추가한 자재 (공식 코드와 겹치지 않는 것)
+  const adminOnly = adminList
+    .filter(m => !officialCodes.has(m.자재코드))
+    .map(m => ({
+      ...m,
+      category:  [m.대분류, m.중분류].filter(Boolean).join(' > '),
+      name:      m.품명,
+      brand:     m.브랜드 || '',
+      unit:      m.단위 || '',
+      grade:     m.등급 || '-',
+      price:     m.가격_판매가 ? `${Number(m.가격_판매가).toLocaleString()}원` : '-',
+      price_num: m.가격_판매가 ? Number(m.가격_판매가) : 0,
+      isAdminAdded: true,
+    }));
+
+  return [...adminOnly, ...officialFormatted];
 }
 
 export function getCategories() {

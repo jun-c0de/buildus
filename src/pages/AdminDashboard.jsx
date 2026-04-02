@@ -372,23 +372,75 @@ function MaterialFormModal({ initial, onSave, onClose }) {
 }
 
 function MaterialsTab() {
-  const officialCount = useMemo(() => getMaterials().filter(m => !m.isAdminAdded).length, []);
-  const [adminMats, setAdminMats] = useState(() => getAdminMaterials());
-  const [modal, setModal] = useState(null); // null | 'add' | material object
+  const [adminList, setAdminList] = useState(() => getAdminMaterials());
+  const [modal, setModal]   = useState(null); // null | 'add' | material object
   const [search, setSearch] = useState('');
+  const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'custom' | 'modified'
+  const [page, setPage]     = useState(1);
+  const PAGE_SIZE = 25;
 
-  const filtered = adminMats.filter(m =>
-    !search || m.품명?.includes(search) || m.브랜드?.includes(search) || m.대분류?.includes(search)
-  );
+  // getMaterials()는 adminList 변경 후 재계산
+  const allMaterials = useMemo(() => getMaterials(), [adminList]);
+
+  const adminMap     = useMemo(() => new Map(adminList.map(m => [m.자재코드, m])), [adminList]);
+  const officialCnt  = allMaterials.filter(m => !m.isAdminAdded).length;
+  const adminOnlyCnt = allMaterials.filter(m => m.isAdminAdded).length;
+  const modifiedCnt  = allMaterials.filter(m => m.isOverridden).length;
+
+  const filtered = useMemo(() => {
+    let r = allMaterials;
+    if (viewFilter === 'custom')   r = r.filter(m => m.isAdminAdded);
+    if (viewFilter === 'modified') r = r.filter(m => m.isOverridden);
+    if (search) {
+      const q = search.toLowerCase();
+      r = r.filter(m =>
+        (m.품명 ?? '').toLowerCase().includes(q) ||
+        (m.브랜드 ?? '').toLowerCase().includes(q) ||
+        (m.대분류 ?? '').includes(search) ||
+        (m.중분류 ?? '').includes(search)
+      );
+    }
+    return r;
+  }, [allMaterials, viewFilter, search]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function resetPage(fn) { fn(); setPage(1); }
+
+  // 편집 모달에 넘길 초기값 — 공식/관리자 자재 양쪽 형식 처리
+  function openEdit(m) {
+    setModal({
+      자재코드:  m.자재코드,
+      품명:      m.품명 ?? m.name ?? '',
+      대분류:    m.대분류 || '마감재',
+      중분류:    m.중분류 || '',
+      브랜드:    m.브랜드 || m.brand || m.제조사 || '',
+      규격:      m.규격 || '',
+      단위:      m.단위 || m.unit || '',
+      // 가격: 관리자 오버라이드 우선, 없으면 공식 가격
+      가격_판매가: adminMap.has(m.자재코드)
+        ? (adminMap.get(m.자재코드).가격_판매가 ?? '')
+        : (m.가격?.판매가 ?? m.가격?.쿠팡가 ?? m.가격?.네이버최저가 ?? ''),
+      등급:      m.등급 || m.grade || '-',
+      추천공간:  m.추천공간 || [],
+    });
+  }
 
   function handleSave(mat) {
-    setAdminMats(saveAdminMaterial(mat));
+    setAdminList(saveAdminMaterial(mat));
     setModal(null);
   }
   function handleDelete(code) {
     if (!confirm('이 자재를 삭제할까요?')) return;
-    setAdminMats(deleteAdminMaterial(code));
+    setAdminList(deleteAdminMaterial(code));
   }
+  function handleResetOverride(code) {
+    if (!confirm('수정 내용을 원래대로 되돌릴까요?')) return;
+    setAdminList(deleteAdminMaterial(code));
+  }
+
+  const GRADE_STYLE = { '프리미엄': { bg: '#FEF3C7', text: '#92400E' }, '표준': { bg: '#EFF6FF', text: '#1D4ED8' }, '-': { bg: '#F1F5F9', text: '#64748B' } };
 
   return (
     <div>
@@ -400,77 +452,113 @@ function MaterialsTab() {
         />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+      {/* 통계 카드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: '공식 자재', value: officialCount.toLocaleString(), sub: 'DB 기준', color: '#3B82F6' },
-          { label: '관리자 추가 자재', value: adminMats.length, sub: '자재몰에도 표시됩니다', color: '#10B981' },
-          { label: '전체 자재', value: (officialCount + adminMats.length).toLocaleString(), sub: '자재몰 표시 기준', color: '#8B5CF6' },
+          { label: '공식 자재',   value: officialCnt.toLocaleString(), sub: 'DB 기준',       color: '#3B82F6' },
+          { label: '관리자 추가', value: adminOnlyCnt,                  sub: '자재몰에 표시', color: '#10B981' },
+          { label: '단가 수정됨', value: modifiedCnt,                   sub: '공식 자재 중',  color: '#F59E0B' },
+          { label: '전체',        value: allMaterials.length.toLocaleString(), sub: '자재몰 기준', color: '#8B5CF6' },
         ].map(({ label, value, sub, color }) => (
-          <div key={label} style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: '20px 24px' }}>
-            <div style={{ fontSize: 13, color: '#64748B', fontWeight: 600, marginBottom: 6 }}>{label}</div>
-            <div style={{ fontSize: 36, fontWeight: 900, color, letterSpacing: '-1px' }}>{value}</div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>{sub}</div>
+          <div key={label} style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: '18px 20px' }}>
+            <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 30, fontWeight: 900, color, letterSpacing: '-1px' }}>{value}</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{sub}</div>
           </div>
         ))}
       </div>
 
       {card(<>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>관리자 추가 자재 <span style={{ fontSize: 13, fontWeight: 400, color: '#94A3B8' }}>({adminMats.length}개)</span></div>
+        {/* 헤더 */}
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[['all','전체'],['custom','추가됨'],['modified','수정됨']].map(([id, label]) => (
+              <button key={id} onClick={() => resetPage(() => setViewFilter(id))} style={{
+                padding: '5px 14px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: viewFilter === id ? '#1A1A1A' : '#F1F5F9',
+                color: viewFilter === id ? 'white' : '#475569',
+              }}>{label}</button>
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="검색"
-              style={{ ...inputSt, width: 160 }} />
-            <button onClick={() => setModal('add')} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#1A1A1A', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ 자재 추가</button>
+            <input value={search} onChange={e => resetPage(() => setSearch(e.target.value))}
+              placeholder="품명·브랜드·분류 검색"
+              style={{ ...inputSt, width: 200 }} />
+            <button onClick={() => setModal('add')} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#1A1A1A', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ 자재 추가</button>
           </div>
         </div>
-        {filtered.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC' }}>
-                {['품명', '분류', '브랜드', '규격/단위', '판매가', '등급', '추천공간', ''].map(h => (
-                  <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748B', fontWeight: 600, borderBottom: '1px solid #E2E8F0' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((m, i) => (
-                <tr key={m.자재코드} style={{ borderBottom: '1px solid #F1F5F9', background: i%2===0?'white':'#FAFAFA' }}>
-                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1A1A1A' }}>{m.품명}</td>
-                  <td style={{ padding: '10px 12px' }}>
+
+        {/* 테이블 */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC' }}>
+              {['품명', '분류', '브랜드', '규격/단위', '판매가', '등급', '추천공간', ''].map(h => (
+                <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#64748B', fontWeight: 600, borderBottom: '1px solid #E2E8F0', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paged.map((m, i) => {
+              const gs = GRADE_STYLE[m.등급 ?? m.grade ?? '-'] ?? GRADE_STYLE['-'];
+              const rowBg = m.isAdminAdded ? '#F0FDF4' : m.isOverridden ? '#FFFBEB' : (i%2===0?'white':'#FAFAFA');
+              return (
+                <tr key={m.자재코드} style={{ borderBottom: '1px solid #F1F5F9', background: rowBg }}>
+                  <td style={{ padding: '9px 12px', fontWeight: 500, color: '#1A1A1A', maxWidth: 200 }}>
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.품명 ?? m.name}</div>
+                    {m.isAdminAdded  && <span style={{ fontSize: 9, background: '#D1FAE5', color: '#065F46', padding: '1px 4px', borderRadius: 3, fontWeight: 700 }}>추가됨</span>}
+                    {m.isOverridden  && <span style={{ fontSize: 9, background: '#FEF3C7', color: '#92400E', padding: '1px 4px', borderRadius: 3, fontWeight: 700 }}>수정됨</span>}
+                  </td>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: '#3B82F6', background: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>{m.대분류}</span>
-                    {m.중분류 && <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{m.중분류}</div>}
+                    {m.중분류 && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>{m.중분류}</div>}
                   </td>
-                  <td style={{ padding: '10px 12px', color: '#64748B' }}>{m.브랜드 || '-'}</td>
-                  <td style={{ padding: '10px 12px', color: '#64748B' }}>{[m.규격, m.단위].filter(Boolean).join(' · ') || '-'}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: 600 }}>
-                    {m.가격_판매가 ? `${Number(m.가격_판매가).toLocaleString()}원` : <span style={{ color: '#CBD5E1' }}>미정</span>}
+                  <td style={{ padding: '9px 12px', color: '#64748B', whiteSpace: 'nowrap' }}>{m.브랜드 || m.brand || '-'}</td>
+                  <td style={{ padding: '9px 12px', color: '#64748B', whiteSpace: 'nowrap' }}>{[m.규격, m.단위 ?? m.unit].filter(Boolean).join(' · ') || '-'}</td>
+                  <td style={{ padding: '9px 12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {m.price && m.price !== '-' ? m.price : <span style={{ color: '#CBD5E1', fontWeight: 400 }}>미정</span>}
                   </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: m.등급==='프리미엄'?'#FEF3C7':'#EFF6FF', color: m.등급==='프리미엄'?'#92400E':'#1D4ED8' }}>{m.등급||'-'}</span>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: gs.bg, color: gs.text }}>{m.등급 ?? m.grade ?? '-'}</span>
                   </td>
-                  <td style={{ padding: '10px 12px' }}>
+                  <td style={{ padding: '9px 12px' }}>
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', maxWidth: 120 }}>
-                      {(m.추천공간||[]).map(s => <span key={s} style={{ fontSize: 10, background: '#F1F5F9', color: '#475569', padding: '1px 5px', borderRadius: 3 }}>{s}</span>)}
+                      {(m.추천공간 ?? []).slice(0, 3).map(s => <span key={s} style={{ fontSize: 10, background: '#F1F5F9', color: '#475569', padding: '1px 5px', borderRadius: 3 }}>{s}</span>)}
                     </div>
                   </td>
-                  <td style={{ padding: '10px 12px' }}>
+                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => setModal(m)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', fontSize: 11, color: '#475569', cursor: 'pointer', fontWeight: 600 }}>수정</button>
-                      <button onClick={() => handleDelete(m.자재코드)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', fontSize: 11, color: '#EF4444', cursor: 'pointer', fontWeight: 600 }}>삭제</button>
+                      <button onClick={() => openEdit(m)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', fontSize: 11, color: '#475569', cursor: 'pointer', fontWeight: 600 }}>편집</button>
+                      {m.isOverridden  && <button onClick={() => handleResetOverride(m.자재코드)} title="원래대로" style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #FEF3C7', background: '#FFFBEB', fontSize: 11, color: '#92400E', cursor: 'pointer' }}>↩</button>}
+                      {m.isAdminAdded  && <button onClick={() => handleDelete(m.자재코드)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #FEE2E2', background: '#FEF2F2', fontSize: 11, color: '#EF4444', cursor: 'pointer' }}>삭제</button>}
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{ padding: 60, textAlign: 'center', color: '#94A3B8' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🧱</div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>추가된 자재가 없습니다</div>
-            <div style={{ fontSize: 13, marginBottom: 16 }}>공식 DB에 없는 자재를 직접 추가할 수 있습니다</div>
-            <button onClick={() => setModal('add')} style={{ padding: '9px 20px', borderRadius: 10, border: 'none', background: '#1A1A1A', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>+ 자재 추가하기</button>
-          </div>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {paged.length === 0 && (
+          <div style={{ padding: 48, textAlign: 'center', color: '#94A3B8' }}>검색 결과가 없습니다</div>
         )}
+
+        {/* 페이지네이션 + 범례 */}
+        <div style={{ padding: '12px 20px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: '#94A3B8' }}>
+            <span>흰 배경: 공식</span>
+            <span style={{ color: '#92400E' }}>노란 배경: 수정됨 (↩ 원복)</span>
+            <span style={{ color: '#065F46' }}>초록 배경: 새로 추가됨</span>
+          </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1}
+                style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', cursor: page===1?'not-allowed':'pointer', color: page===1?'#CBD5E1':'#475569', fontSize: 12 }}>←</button>
+              <span style={{ fontSize: 12, color: '#64748B', padding: '0 6px' }}>{page} / {totalPages}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page===totalPages}
+                style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', cursor: page===totalPages?'not-allowed':'pointer', color: page===totalPages?'#CBD5E1':'#475569', fontSize: 12 }}>→</button>
+            </div>
+          )}
+        </div>
       </>)}
     </div>
   );
