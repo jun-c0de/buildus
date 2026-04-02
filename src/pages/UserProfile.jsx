@@ -44,7 +44,7 @@ function MaterialCard({ m, onRemove }) {
     >
       {/* 이미지 영역 */}
       <div style={{ position: 'relative', height: 110, background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 36, opacity: 0.4 }}>🖼️</span>
+        <span style={{ fontSize: 36, opacity: 0.35 }}>🖼️</span>
         <button
           onClick={() => onRemove(m.자재코드)}
           style={{
@@ -63,11 +63,10 @@ function MaterialCard({ m, onRemove }) {
 
       {/* 내용 */}
       <div style={{ padding: '14px 16px' }}>
-        <div style={{ fontWeight: 600, fontSize: 14, color: '#1A1A1A', marginBottom: 8, lineHeight: 1.3,
+        <div style={{ fontWeight: 600, fontSize: 14, color: '#1A1A1A', marginBottom: 8, lineHeight: 1.4,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {m.품명}
         </div>
-
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: '#3B82F6', background: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>
             {m.대분류}{m.중분류 ? ` › ${m.중분류}` : ''}
@@ -76,11 +75,9 @@ function MaterialCard({ m, onRemove }) {
             {grade}
           </span>
         </div>
-
         <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 10 }}>
           {[m.브랜드 || m.제조사, m.규격].filter(Boolean).join(' · ') || '\u00A0'}
         </div>
-
         <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10 }}>
           {price
             ? <span style={{ fontWeight: 800, fontSize: 15, color: '#1A1A1A' }}>{price.toLocaleString()}원</span>
@@ -124,19 +121,13 @@ function AccountSettings({ currentUser, updateProfile, changePassword }) {
     }
   }
 
-  const SectionCard = ({ title, children }) => (
-    <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', padding: '24px' }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#1A1A1A', marginBottom: 18 }}>{title}</div>
-      {children}
-    </div>
-  );
-
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-      <SectionCard title="이름 변경">
+      {/* 이름 변경 */}
+      <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', padding: '24px' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#1A1A1A', marginBottom: 16 }}>이름 변경</div>
         <input
-          value={editName}
-          onChange={e => setEditName(e.target.value)}
+          value={editName} onChange={e => setEditName(e.target.value)}
           onFocus={e => e.target.style.borderColor = '#3B82F6'}
           onBlur={e => e.target.style.borderColor = '#E2E8F0'}
           style={inputSt}
@@ -145,20 +136,21 @@ function AccountSettings({ currentUser, updateProfile, changePassword }) {
           width: '100%', marginTop: 10, padding: '11px',
           borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700,
           background: nameSaved ? '#D1FAE5' : '#1A1A1A',
-          color: nameSaved ? '#065F46' : 'white',
-          transition: 'all 0.2s',
+          color: nameSaved ? '#065F46' : 'white', transition: 'all 0.2s',
         }}>
           {nameSaved ? '✓ 저장됨' : '저장'}
         </button>
-      </SectionCard>
+      </div>
 
-      <SectionCard title="비밀번호 변경">
+      {/* 비밀번호 변경 */}
+      <div style={{ background: 'white', borderRadius: 16, border: '1px solid #E2E8F0', padding: '24px' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#1A1A1A', marginBottom: 16 }}>비밀번호 변경</div>
         <form onSubmit={handleChangePw} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { val: oldPw, set: setOldPw, ph: '현재 비밀번호' },
-            { val: newPw, set: setNewPw, ph: '새 비밀번호 (4자 이상)' },
-            { val: newPw2, set: setNewPw2, ph: '새 비밀번호 확인' },
-          ].map(({ val, set, ph }) => (
+            [oldPw,  setOldPw,  '현재 비밀번호'],
+            [newPw,  setNewPw,  '새 비밀번호 (4자 이상)'],
+            [newPw2, setNewPw2, '새 비밀번호 확인'],
+          ].map(([val, set, ph]) => (
             <input key={ph} type="password" value={val} onChange={e => set(e.target.value)}
               placeholder={ph}
               onFocus={e => e.target.style.borderColor = '#3B82F6'}
@@ -173,7 +165,7 @@ function AccountSettings({ currentUser, updateProfile, changePassword }) {
             background: '#1A1A1A', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 700,
           }}>변경</button>
         </form>
-      </SectionCard>
+      </div>
     </div>
   );
 }
@@ -186,7 +178,7 @@ export default function UserProfile() {
   const [savedCodes, setSavedCodes] = useState(loadSavedCodes);
   const [tab, setTab] = useState('materials');
 
-  const allMaterials = useMemo(() => getMaterials(), []);
+  const allMaterials  = useMemo(() => getMaterials(), []);
   const savedMaterials = useMemo(
     () => allMaterials.filter(m => savedCodes.has(m.자재코드)),
     [allMaterials, savedCodes]
@@ -203,11 +195,10 @@ export default function UserProfile() {
     });
   }
 
-  const role = currentUser.role;
+  const role        = currentUser.role;
   const avatarBg    = role === 'admin' ? '#FEF3C7' : '#EFF6FF';
   const avatarColor = role === 'admin' ? '#92400E' : '#1D4ED8';
-
-  const daysSince = Math.max(0, Math.floor(
+  const daysSince   = Math.max(0, Math.floor(
     (Date.now() - new Date(currentUser.joinedAt).getTime()) / (1000 * 60 * 60 * 24)
   ));
 
@@ -218,58 +209,63 @@ export default function UserProfile() {
         {/* ── 프로필 헤더 카드 ──────────────────────────────────────── */}
         <div style={{ background: 'white', borderRadius: '0 0 24px 24px', border: '1px solid #E2E8F0', borderTop: 'none', marginBottom: 28, overflow: 'hidden' }}>
 
-          {/* 상단 배너 */}
-          <div style={{ height: 96, background: 'linear-gradient(135deg, #1A1A1A 0%, #374151 100%)' }} />
+          {/* 배너 — 아바타를 absolute로 걸침 */}
+          <div style={{ height: 100, background: 'linear-gradient(135deg, #1A1A1A 0%, #374151 100%)', position: 'relative' }}>
+            <div style={{
+              position: 'absolute', bottom: -40, left: 36,
+              width: 80, height: 80, borderRadius: '50%',
+              background: avatarBg, color: avatarColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 34, fontWeight: 900,
+              border: '4px solid white',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.14)',
+            }}>{currentUser.name[0]}</div>
+          </div>
 
-          {/* 아바타 + 정보 */}
-          <div style={{ padding: '0 36px 28px', marginTop: -44 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 16 }}>
-              <div style={{
-                width: 88, height: 88, borderRadius: '50%',
-                background: avatarBg, color: avatarColor,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 36, fontWeight: 900,
-                border: '4px solid white',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                flexShrink: 0,
-              }}>{currentUser.name[0]}</div>
+          {/* 이름·이메일·역할 — 배너 아래 흰 영역, 아바타 공간 확보 */}
+          <div style={{ paddingTop: 52, paddingLeft: 36, paddingRight: 36, paddingBottom: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 22, color: '#1A1A1A', letterSpacing: '-0.5px' }}>
+              {currentUser.name}
+            </div>
+            <div style={{ fontSize: 14, color: '#64748B', marginTop: 3 }}>
+              {currentUser.email}
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20,
+                background: role === 'admin' ? '#FEF3C7' : '#F1F5F9',
+                color: role === 'admin' ? '#92400E' : '#475569',
+              }}>
+                {role === 'admin' ? '🔑 관리자' : '일반 사용자'}
+              </span>
+            </div>
+          </div>
 
-              <div style={{ paddingBottom: 4 }}>
-                <div style={{ fontWeight: 800, fontSize: 22, color: '#1A1A1A', letterSpacing: '-0.5px' }}>{currentUser.name}</div>
-                <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>{currentUser.email}</div>
-                <div style={{ marginTop: 8 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-                    background: role === 'admin' ? '#FEF3C7' : '#F1F5F9',
-                    color: role === 'admin' ? '#92400E' : '#475569',
-                  }}>
-                    {role === 'admin' ? '🔑 관리자' : '일반 사용자'}
-                  </span>
+          {/* 통계 바 */}
+          <div style={{ display: 'flex', margin: '24px 36px 0', paddingTop: 20, borderTop: '1px solid #F1F5F9', paddingBottom: 24 }}>
+            {[
+              { value: savedMaterials.length, label: '담은 자재', unit: '개', color: '#3B82F6' },
+              { value: daysSince,             label: '가입 경과', unit: '일', color: '#10B981' },
+              { value: currentUser.joinedAt,  label: '가입일',   unit: '',   color: '#8B5CF6' },
+            ].map(({ value, label, unit, color }, i, arr) => (
+              <div key={label} style={{
+                flex: 1, textAlign: 'center',
+                borderRight: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none',
+                padding: '4px 0',
+              }}>
+                <div style={{ fontSize: typeof value === 'number' ? 26 : 16, fontWeight: 800, color, letterSpacing: '-0.5px' }}>
+                  {value}{unit}
                 </div>
+                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>{label}</div>
               </div>
-            </div>
-
-            {/* 통계 바 */}
-            <div style={{ display: 'flex', gap: 0, paddingTop: 20, borderTop: '1px solid #F1F5F9' }}>
-              {[
-                { value: savedMaterials.length, label: '담은 자재', color: '#3B82F6' },
-                { value: daysSince, label: '가입 일수', color: '#10B981' },
-                { value: currentUser.joinedAt, label: '가입일', color: '#8B5CF6', isDate: true },
-              ].map(({ value, label, color, isDate }) => (
-                <div key={label} style={{ flex: 1, textAlign: 'center', padding: '12px 0', borderRight: '1px solid #F1F5F9' }}
-                  style={{ flex: 1, textAlign: 'center', padding: '12px 0' }}>
-                  <div style={{ fontSize: isDate ? 14 : 24, fontWeight: 800, color }}>{value}</div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 3 }}>{label}</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
 
         {/* ── 탭 ────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'white', padding: 4, borderRadius: 12, border: '1px solid #E2E8F0', width: 'fit-content' }}>
           {[
-            { id: 'materials', label: `담은 자재 ${savedMaterials.length > 0 ? `(${savedMaterials.length})` : ''}` },
+            { id: 'materials', label: `담은 자재${savedMaterials.length > 0 ? ` (${savedMaterials.length})` : ''}` },
             { id: 'settings',  label: '계정 설정' },
           ].map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)} style={{
@@ -285,7 +281,7 @@ export default function UserProfile() {
         {tab === 'materials' && (
           savedMaterials.length === 0 ? (
             <div style={{ background: 'white', borderRadius: 20, border: '1px solid #E2E8F0', padding: '80px 40px', textAlign: 'center' }}>
-              <div style={{ fontSize: 52, marginBottom: 16, opacity: 0.4 }}>📦</div>
+              <div style={{ fontSize: 52, marginBottom: 16, opacity: 0.35 }}>📦</div>
               <div style={{ fontWeight: 700, fontSize: 18, color: '#1A1A1A', marginBottom: 8 }}>아직 담은 자재가 없어요</div>
               <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 28 }}>자재몰에서 마음에 드는 자재를 담아보세요</div>
               <button onClick={() => navigate('/marketplace')} style={{
