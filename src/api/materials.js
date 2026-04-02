@@ -3,6 +3,44 @@ import processesData      from '../data/processes.json';
 import processMaterialsData from '../data/process_materials.json';
 import areaReferenceData  from '../data/area_reference.json';
 
+// ── 관리자 자재 (localStorage) ────────────────────────────────────────────────
+const AM_KEY = 'buildus_admin_materials';
+function loadAdminMaterials() {
+  try { return JSON.parse(localStorage.getItem(AM_KEY) || '[]'); } catch { return []; }
+}
+export function getAdminMaterials() { return loadAdminMaterials(); }
+export function saveAdminMaterial(mat) {
+  const list = loadAdminMaterials();
+  const idx = list.findIndex(m => m.자재코드 === mat.자재코드);
+  const next = idx >= 0 ? list.map((m, i) => i === idx ? mat : m) : [mat, ...list];
+  localStorage.setItem(AM_KEY, JSON.stringify(next));
+  return next;
+}
+export function deleteAdminMaterial(code) {
+  const next = loadAdminMaterials().filter(m => m.자재코드 !== code);
+  localStorage.setItem(AM_KEY, JSON.stringify(next));
+  return next;
+}
+
+// ── 관리자 공정 오버라이드 (localStorage) ─────────────────────────────────────
+const AP_KEY = 'buildus_admin_processes';
+function loadAdminProcesses() {
+  try { return JSON.parse(localStorage.getItem(AP_KEY) || '[]'); } catch { return []; }
+}
+export function getAdminProcessOverrides() { return loadAdminProcesses(); }
+export function saveAdminProcess(proc) {
+  const list = loadAdminProcesses();
+  const idx = list.findIndex(p => p.공정코드 === proc.공정코드);
+  const next = idx >= 0 ? list.map((p, i) => i === idx ? proc : p) : [...list, proc];
+  localStorage.setItem(AP_KEY, JSON.stringify(next));
+  return next;
+}
+export function deleteAdminProcess(code) {
+  const next = loadAdminProcesses().filter(p => p.공정코드 !== code);
+  localStorage.setItem(AP_KEY, JSON.stringify(next));
+  return next;
+}
+
 // ── 자재몰용 ─────────────────────────────────────────────────────────────────
 
 function formatPrice(가격) {
@@ -12,9 +50,8 @@ function formatPrice(가격) {
 }
 
 export function getMaterials() {
-  return materialsData.map(m => ({
+  const official = materialsData.map(m => ({
     ...m,
-    // Marketplace 호환 normalized fields
     category:  [m.대분류, m.중분류, m.소분류].filter(Boolean).join(' > '),
     name:      m.품명,
     brand:     m.브랜드 || m.제조사 || '',
@@ -23,6 +60,18 @@ export function getMaterials() {
     price:     formatPrice(m.가격),
     price_num: m.가격?.판매가 ?? m.가격?.쿠팡가 ?? m.가격?.네이버최저가 ?? 0,
   }));
+  const admin = loadAdminMaterials().map(m => ({
+    ...m,
+    category:  [m.대분류, m.중분류].filter(Boolean).join(' > '),
+    name:      m.품명,
+    brand:     m.브랜드 || '',
+    unit:      m.단위 || '',
+    grade:     m.등급 || '-',
+    price:     m.가격_판매가 ? `${Number(m.가격_판매가).toLocaleString()}원` : '-',
+    price_num: m.가격_판매가 ? Number(m.가격_판매가) : 0,
+    isAdminAdded: true,
+  }));
+  return [...admin, ...official];
 }
 
 export function getCategories() {
@@ -37,7 +86,13 @@ export function getMaterialByCode(code) {
 // ── 공정/견적용 ────────────────────────────────────────────────────────────────
 
 export function getProcesses() {
-  return [...processesData].sort((a, b) => a.순서 - b.순서);
+  const overrides = loadAdminProcesses();
+  const overrideMap = new Map(overrides.map(p => [p.공정코드, p]));
+  const base = [...processesData].sort((a, b) => a.순서 - b.순서)
+    .map(p => overrideMap.has(p.공정코드) ? { ...p, ...overrideMap.get(p.공정코드) } : p);
+  const baseCodes = new Set(processesData.map(p => p.공정코드));
+  const adminOnly = overrides.filter(p => !baseCodes.has(p.공정코드));
+  return [...base, ...adminOnly];
 }
 
 export function getProcessMaterials(processCode) {

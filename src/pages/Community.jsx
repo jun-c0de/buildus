@@ -1,27 +1,14 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { loadPosts, addPost } from '../store/communityStore';
 
 const CATEGORIES = [
-  { id: 'all',     label: '전체',      icon: '📋' },
-  { id: 'review',  label: '시공후기',   icon: '⭐' },
-  { id: 'quote',   label: '견적공유',   icon: '💰' },
-  { id: 'qna',     label: 'Q&A',       icon: '💬' },
-  { id: 'material',label: '자재추천',   icon: '🧱' },
-  { id: 'apt',     label: '아파트별',   icon: '🏢' },
-];
-
-const POSTS = [
-  { id:1, category:'review',   title:'25평 전체 인테리어 완성 후기 (비용 포함)',  author:'인테리어고수',  date:'2026-03-28', views:1243, comments:34, hot:true },
-  { id:2, category:'quote',    title:'상현마을 휴먼시아 84m² 견적 비교 공유합니다', author:'절약왕',       date:'2026-03-27', views:876,  comments:21, hot:true },
-  { id:3, category:'qna',      title:'욕실 타일 직접 시공 가능한가요?',            author:'초보집주인',   date:'2026-03-27', views:432,  comments:15, hot:false },
-  { id:4, category:'material', title:'강화마루 vs LVT 바닥재 뭐가 나을까요?',      author:'바닥전문가',   date:'2026-03-26', views:654,  comments:28, hot:false },
-  { id:5, category:'apt',      title:'성복역 롯데캐슬 84평형 목공 후기',           author:'롯데주민',     date:'2026-03-26', views:321,  comments:9,  hot:false },
-  { id:6, category:'review',   title:'도배+바닥 셀프 시공 비용 아끼는 법',         author:'DIY장인',      date:'2026-03-25', views:987,  comments:42, hot:true },
-  { id:7, category:'quote',    title:'광교 힐스테이트 32평 총 견적 1,800만원 내역', author:'견적고수',     date:'2026-03-25', views:1102, comments:31, hot:true },
-  { id:8, category:'qna',      title:'샷시 교체 시 발코니 확장까지 같이 하면?',    author:'리모델링준비', date:'2026-03-24', views:289,  comments:7,  hot:false },
-  { id:9, category:'material', title:'KCC vs LG 샷시 비교 실사용 후기',           author:'샷시전문가',   date:'2026-03-24', views:445,  comments:18, hot:false },
-  { id:10,category:'apt',      title:'상현 자이 방 3개 도배 비용 얼마나 들까요',   author:'자이주민',     date:'2026-03-23', views:234,  comments:11, hot:false },
-  { id:11,category:'review',   title:'주방 리모델링 직접 했습니다 (싱크대 교체)',  author:'주방장',       date:'2026-03-23', views:678,  comments:22, hot:false },
-  { id:12,category:'quote',    title:'더샵 포레스트 욕실 2개 견적 공유',           author:'더샵주민',     date:'2026-03-22', views:512,  comments:14, hot:false },
+  { id: 'all',      label: '전체',    icon: '📋' },
+  { id: 'review',   label: '시공후기', icon: '⭐' },
+  { id: 'quote',    label: '견적공유', icon: '💰' },
+  { id: 'qna',      label: 'Q&A',     icon: '💬' },
+  { id: 'material', label: '자재추천', icon: '🧱' },
+  { id: 'apt',      label: '아파트별', icon: '🏢' },
 ];
 
 const CATEGORY_COLORS = {
@@ -32,21 +19,75 @@ const CATEGORY_COLORS = {
   apt:      { bg: '#FFF1F2', text: '#E11D48' },
 };
 
+function WriteModal({ onClose, defaultAuthor }) {
+  const [form, setForm] = useState({ title: '', category: 'review', content: '', author: defaultAuthor || '' });
+  const [err, setErr] = useState('');
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.title.trim()) return setErr('제목을 입력하세요.');
+    if (!form.author.trim()) return setErr('작성자를 입력하세요.');
+    addPost({ title: form.title.trim(), category: form.category, author: form.author.trim(), content: form.content });
+    onClose(true);
+  }
+
+  const input = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #E2E8F0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: 20, padding: '28px 32px', width: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ fontWeight: 800, fontSize: 17, color: '#1A1A1A' }}>글쓰기</div>
+          <button onClick={() => onClose(false)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: '#94A3B8' }}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <select value={form.category} onChange={e => set('category', e.target.value)} style={input}>
+            {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+              <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+            ))}
+          </select>
+          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="제목" style={input} />
+          <textarea value={form.content} onChange={e => set('content', e.target.value)} placeholder="내용을 입력하세요" rows={5}
+            style={{ ...input, resize: 'vertical' }} />
+          <input value={form.author} onChange={e => set('author', e.target.value)} placeholder="작성자 이름" style={input} />
+          {err && <p style={{ margin: 0, fontSize: 13, color: '#EF4444' }}>{err}</p>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button type="button" onClick={() => onClose(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1px solid #E2E8F0', background: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#475569' }}>취소</button>
+            <button type="submit" style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#1A1A1A', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>등록</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Community() {
+  const { currentUser, isLoggedIn } = useAuth();
+  const [posts, setPosts] = useState(() => loadPosts());
   const [activeCategory, setCategory] = useState('all');
   const [search, setSearch] = useState('');
+  const [showWrite, setShowWrite] = useState(false);
 
-  const filtered = POSTS.filter(p => {
+  const sorted = [...posts].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  const filtered = sorted.filter(p => {
     const matchCat = activeCategory === 'all' || p.category === activeCategory;
     const matchSearch = !search || p.title.includes(search) || p.author.includes(search);
     return matchCat && matchSearch;
   });
 
-  const hotPosts = POSTS.filter(p => p.hot).slice(0, 3);
+  const hotPosts = posts.filter(p => p.hot).slice(0, 3);
+
+  function handleWriteClose(posted) {
+    setShowWrite(false);
+    if (posted) setPosts(loadPosts());
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-      {/* 헤더 */}
+      {showWrite && <WriteModal onClose={handleWriteClose} defaultAuthor={currentUser?.name ?? ''} />}
+
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1A1A1A', margin: 0 }}>커뮤니티</h1>
         <p style={{ color: '#64748B', fontSize: 14, marginTop: 4 }}>인테리어 경험과 정보를 나눠요</p>
@@ -89,7 +130,6 @@ export default function Community() {
 
       {/* 글 목록 */}
       <div style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', overflow: 'hidden', marginBottom: 20 }}>
-        {/* 목록 헤더 */}
         <div style={{ display: 'flex', padding: '10px 20px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: 12, color: '#94A3B8', fontWeight: 600 }}>
           <div style={{ flex: 1 }}>제목</div>
           <div style={{ width: 80, textAlign: 'center' }}>작성자</div>
@@ -105,11 +145,13 @@ export default function Community() {
               display: 'flex', alignItems: 'center', padding: '13px 20px',
               borderBottom: i < filtered.length - 1 ? '1px solid #F1F5F9' : 'none',
               cursor: 'pointer', transition: 'background 0.1s',
+              background: post.pinned ? '#FFFBEB' : 'white',
             }}
               onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-              onMouseLeave={e => e.currentTarget.style.background = 'white'}
+              onMouseLeave={e => e.currentTarget.style.background = post.pinned ? '#FFFBEB' : 'white'}
             >
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {post.pinned && <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 700 }}>📌</span>}
                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: col.bg, color: col.text, flexShrink: 0 }}>
                   {CATEGORIES.find(c => c.id === post.category)?.label}
                 </span>
@@ -129,9 +171,8 @@ export default function Community() {
         )}
       </div>
 
-      {/* 글쓰기 버튼 */}
       <div style={{ textAlign: 'right' }}>
-        <button style={{
+        <button onClick={() => setShowWrite(true)} style={{
           padding: '10px 24px', borderRadius: 10, border: 'none',
           background: '#1A1A1A', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         }}>✏️ 글쓰기</button>
