@@ -10,7 +10,6 @@ import {
   getProcessArea,
   getMaterials,
 } from '../api/materials';
-import { getFloorplanData } from '../api/floorplan';
 import { parseLabels } from '../utils/labelParser';
 import FloorPlan2D from '../components/FloorPlan2D';
 
@@ -222,37 +221,42 @@ export default function CostAnalyzer() {
   // 평면도 로드
   useEffect(() => {
     if (step !== 3 || !selectedType) return;
+    let cancelled = false;
     setFloorplanImg(null);
     setFloorplanData(null);
-    const apt = apts.find(a => a.id === selectedAptId);
-    if (!apt) return;
-    fetch('/floorplans_index.json')
-      .then(r => r.json())
-      .then(async index => {
-        const complex = index.find(c => c.complex === apt.complexKey);
-        if (!complex) return;
-        let best = null, bestDiff = Infinity;
-        for (const unit of complex.units) {
-          const num = parseInt(unit.unitType);
-          if (!isNaN(num)) {
-            const diff = Math.abs(num - selectedType.area);
-            if (diff < bestDiff) { bestDiff = diff; best = unit; }
-          }
+
+    async function load() {
+      const apt = apts.find(a => a.id === selectedAptId);
+      if (!apt) return;
+
+      const index = await fetch('/floorplans_index.json').then(r => r.json());
+      const complex = index.find(c => c.complex === apt.complexKey);
+      if (!complex) return;
+
+      let best = null, bestDiff = Infinity;
+      for (const unit of complex.units) {
+        const num = parseInt(unit.unitType);
+        if (!isNaN(num)) {
+          const diff = Math.abs(num - selectedType.area);
+          if (diff < bestDiff) { bestDiff = diff; best = unit; }
         }
-        if (!best) return;
-        setFloorplanImg(`/floorplans/${apt.complexKey}/${best.imageFile}`);
-        // 스타일 뷰용 JSON 데이터 로드
-        if (best.spaJson && best.strJson) {
-          try {
-            const { str, spa } = await getFloorplanData(`/${best.spaJson}`, `/${best.strJson}`);
-            setFloorplanData(parseLabels(str, spa));
-          } catch {
-            // JSON 없으면 원본 이미지로 폴백
-          }
-        }
-      })
-      .catch(() => {});
-  }, [step, selectedType, selectedAptId]);
+      }
+      if (!best || cancelled) return;
+
+      setFloorplanImg(`/floorplans/${apt.complexKey}/${best.imageFile}`);
+
+      if (best.spaJson && best.strJson) {
+        const [strJson, spaJson] = await Promise.all([
+          fetch(`/${best.strJson}`).then(r => r.json()),
+          fetch(`/${best.spaJson}`).then(r => r.json()),
+        ]);
+        if (!cancelled) setFloorplanData(parseLabels(strJson, spaJson));
+      }
+    }
+
+    load().catch(() => {});
+    return () => { cancelled = true; };
+  }, [step, selectedType?.area, selectedAptId]);
 
   const pyeong  = selectedType?.pyeong ?? 25;
   const apt     = apts.find(a => a.id === selectedAptId);
