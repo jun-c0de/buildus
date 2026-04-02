@@ -173,7 +173,10 @@ export default function Home() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {PAIN_POINTS.map(({ icon, title, desc }) => (
-              <div key={title} style={{ background: '#FAFAF8', borderRadius: 16, padding: '28px 24px', border: '1px solid #F1F5F9' }}>
+              <div key={title} style={{ background: '#FAFAF8', borderRadius: 16, padding: '28px 24px', border: '1px solid #F1F5F9', transition: 'all 0.18s', cursor: 'default' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)'; e.currentTarget.style.borderColor = '#E2E8F0'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#F1F5F9'; }}
+              >
                 <div style={{ fontSize: 32, marginBottom: 14 }}>{icon}</div>
                 <div style={{ fontWeight: 700, fontSize: 16, color: '#1A1A1A', marginBottom: 8 }}>{title}</div>
                 <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.65 }}>{desc}</div>

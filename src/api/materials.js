@@ -165,6 +165,10 @@ export function getProcessAreaLabel(processCode, spaces) {
   return getApplicableArea(processCode, spaces).label;
 }
 
+export function getProcessArea(processCode, spaces) {
+  return getApplicableArea(processCode, spaces).area;
+}
+
 // 공정별 단가 없을 때 폴백 (m²당 원)
 const FALLBACK_PER_M2 = {
   'PROC-01': 10000,   // 철거 1만/㎡
