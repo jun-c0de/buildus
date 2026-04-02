@@ -112,13 +112,15 @@ export default function Layout() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{currentUser.name}</div>
                       <div style={{ fontSize: 11, color: '#94A3B8' }}>{currentUser.email}</div>
                     </div>
-                    <NavLink to="/profile" onClick={() => setShowUserMenu(false)} style={{
-                      display: 'block', padding: '8px 12px', borderRadius: 8,
-                      fontSize: 13, color: '#1A1A1A', fontWeight: 600, textDecoration: 'none',
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#F1F5F9'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >내 프로필</NavLink>
+                    {!isAdmin && (
+                      <NavLink to="/profile" onClick={() => setShowUserMenu(false)} style={{
+                        display: 'block', padding: '8px 12px', borderRadius: 8,
+                        fontSize: 13, color: '#1A1A1A', fontWeight: 600, textDecoration: 'none',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#F1F5F9'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >내 프로필</NavLink>
+                    )}
                     {isAdmin && (
                       <NavLink to="/admin" onClick={() => setShowUserMenu(false)} style={{
                         display: 'block', padding: '8px 12px', borderRadius: 8,

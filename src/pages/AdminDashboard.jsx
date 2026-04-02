@@ -734,16 +734,91 @@ function ProcessesTab() {
 }
 
 // ── 메인 ─────────────────────────────────────────────────────────────────────
+// ── 계정 설정 탭 ─────────────────────────────────────────────────────────────
+function AccountTab({ currentUser, updateProfile, changePassword }) {
+  const [editName, setEditName]   = useState(currentUser?.name ?? '');
+  const [nameSaved, setNameSaved] = useState(false);
+  const [oldPw, setOldPw]   = useState('');
+  const [newPw, setNewPw]   = useState('');
+  const [newPw2, setNewPw2] = useState('');
+  const [pwMsg, setPwMsg]   = useState({ type: '', text: '' });
+
+  function handleSaveName() {
+    if (!editName.trim()) return;
+    updateProfile(editName.trim());
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 2000);
+  }
+  function handleChangePw(e) {
+    e.preventDefault();
+    setPwMsg({ type: '', text: '' });
+    if (newPw.length < 4) return setPwMsg({ type: 'error', text: '새 비밀번호는 4자 이상이어야 합니다.' });
+    if (newPw !== newPw2)  return setPwMsg({ type: 'error', text: '새 비밀번호가 일치하지 않습니다.' });
+    try {
+      changePassword(oldPw, newPw);
+      setOldPw(''); setNewPw(''); setNewPw2('');
+      setPwMsg({ type: 'success', text: '비밀번호가 변경되었습니다.' });
+    } catch (err) { setPwMsg({ type: 'error', text: err.message }); }
+  }
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {[
+          {
+            title: '이름 변경',
+            content: (
+              <>
+                <input value={editName} onChange={e => setEditName(e.target.value)}
+                  onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                  onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                  style={{ ...inputSt, marginBottom: 10 }} />
+                <button onClick={handleSaveName} style={{
+                  width: '100%', padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 700,
+                  background: nameSaved ? '#D1FAE5' : '#1A1A1A',
+                  color: nameSaved ? '#065F46' : 'white', transition: 'all 0.2s',
+                }}>{nameSaved ? '✓ 저장됨' : '저장'}</button>
+              </>
+            ),
+          },
+          {
+            title: '비밀번호 변경',
+            content: (
+              <form onSubmit={handleChangePw} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[['현재 비밀번호', oldPw, setOldPw], ['새 비밀번호 (4자 이상)', newPw, setNewPw], ['새 비밀번호 확인', newPw2, setNewPw2]].map(([ph, val, set]) => (
+                  <input key={ph} type="password" value={val} onChange={e => set(e.target.value)} placeholder={ph}
+                    onFocus={e => e.target.style.borderColor = '#3B82F6'}
+                    onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                    style={inputSt} />
+                ))}
+                {pwMsg.text && <p style={{ margin: 0, fontSize: 12, color: pwMsg.type === 'error' ? '#EF4444' : '#10B981' }}>{pwMsg.text}</p>}
+                <button type="submit" style={{ padding: '10px', borderRadius: 10, border: 'none', background: '#1A1A1A', color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, marginTop: 2 }}>변경</button>
+              </form>
+            ),
+          },
+        ].map(({ title, content }) => (
+          <div key={title} style={{ background: 'white', borderRadius: 14, border: '1px solid #E2E8F0', padding: '22px 24px' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#1A1A1A', marginBottom: 14 }}>{title}</div>
+            {content}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
   { id: 'overview',   label: '📊 개요' },
   { id: 'users',      label: '👥 사용자' },
   { id: 'community',  label: '📝 커뮤니티' },
   { id: 'materials',  label: '🧱 자재' },
   { id: 'processes',  label: '⚙️ 공정' },
+  { id: 'account',    label: '👤 계정 설정' },
 ];
 
 export default function AdminDashboard() {
-  const { currentUser, isAdmin, getAllUsers, changeRole } = useAuth();
+  const { currentUser, isAdmin, getAllUsers, changeRole, updateProfile, changePassword } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('overview');
 
@@ -777,6 +852,7 @@ export default function AdminDashboard() {
       {tab === 'community' && <CommunityTab />}
       {tab === 'materials' && <MaterialsTab />}
       {tab === 'processes' && <ProcessesTab />}
+      {tab === 'account'   && <AccountTab currentUser={currentUser} updateProfile={updateProfile} changePassword={changePassword} />}
     </div>
   );
 }
