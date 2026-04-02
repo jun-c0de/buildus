@@ -423,9 +423,9 @@ export default function FloorPlan2D({ data, imageUrl, compact = false }) {
   const canvasRef = useRef(null);
   const [hovered, setHovered]     = useState(null);
   const [loadedImg, setLoadedImg] = useState(null);
-  const [viewStyle, setViewStyle] = useState('styled');
+  const viewStyle = 'styled';
 
-  // 도면 원본 이미지 로드
+  // 도면 원본 이미지 로드 (photo 모드 폴백용으로만 유지)
   useEffect(() => {
     if (!imageUrl) { setLoadedImg(null); return; }
     const img = new Image();
@@ -552,24 +552,6 @@ export default function FloorPlan2D({ data, imageUrl, compact = false }) {
           pointerEvents: 'none',
         }}>1 : 100</div>
 
-        {/* 뷰 모드 토글 (이미지 있을 때만) */}
-        {imageUrl && (
-          <div style={{
-            position: 'absolute', bottom: 16, left: 16,
-            display: 'flex', background: 'rgba(255,255,255,0.95)',
-            border: '1px solid #E2E8F0', borderRadius: 10, padding: 3, gap: 2,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          }}>
-            {[{ id: 'styled', label: '스타일 뷰' }, { id: 'photo', label: '도면 사진' }].map(m => (
-              <button key={m.id} onClick={() => setViewStyle(m.id)} style={{
-                padding: '4px 11px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                fontSize: 11, fontWeight: 600, transition: 'all 0.12s',
-                background: viewStyle === m.id ? '#1A1A2E' : 'transparent',
-                color: viewStyle === m.id ? 'white' : '#64748B',
-              }}>{m.label}</button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── 우측 패널 (compact 모드에선 숨김) ── */}
