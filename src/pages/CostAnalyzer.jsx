@@ -10,6 +10,9 @@ import {
   getProcessArea,
   getMaterials,
 } from '../api/materials';
+import { getFloorplanData } from '../api/floorplan';
+import { parseLabels } from '../utils/labelParser';
+import FloorPlan2D from '../components/FloorPlan2D';
 
 const PROCESS_ICONS = {
   'PROC-01': '🔨', 'PROC-02': '🔧', 'PROC-03': '💡', 'PROC-04': '💧',
@@ -200,7 +203,8 @@ export default function CostAnalyzer() {
   const [checked,   setChecked]   = useState({});
   const [grades,    setGrades]    = useState({});
   const [detailId,  setDetailId]  = useState(null);
-  const [floorplanImg, setFloorplanImg] = useState(null);
+  const [floorplanImg,  setFloorplanImg]  = useState(null);
+  const [floorplanData, setFloorplanData] = useState(null);
 
   // 셀프 견적 모드
   const [selfMode,      setSelfMode]     = useState(false);
@@ -219,11 +223,12 @@ export default function CostAnalyzer() {
   useEffect(() => {
     if (step !== 3 || !selectedType) return;
     setFloorplanImg(null);
+    setFloorplanData(null);
     const apt = apts.find(a => a.id === selectedAptId);
     if (!apt) return;
     fetch('/floorplans_index.json')
       .then(r => r.json())
-      .then(index => {
+      .then(async index => {
         const complex = index.find(c => c.complex === apt.complexKey);
         if (!complex) return;
         let best = null, bestDiff = Infinity;
@@ -234,7 +239,17 @@ export default function CostAnalyzer() {
             if (diff < bestDiff) { bestDiff = diff; best = unit; }
           }
         }
-        if (best) setFloorplanImg(`/floorplans/${apt.complexKey}/${best.imageFile}`);
+        if (!best) return;
+        setFloorplanImg(`/floorplans/${apt.complexKey}/${best.imageFile}`);
+        // 스타일 뷰용 JSON 데이터 로드
+        if (best.spaJson && best.strJson) {
+          try {
+            const { str, spa } = await getFloorplanData(`/${best.spaJson}`, `/${best.strJson}`);
+            setFloorplanData(parseLabels(str, spa));
+          } catch {
+            // JSON 없으면 원본 이미지로 폴백
+          }
+        }
       })
       .catch(() => {});
   }, [step, selectedType, selectedAptId]);
@@ -704,7 +719,11 @@ export default function CostAnalyzer() {
                     상세보기 →
                   </button>
                 </div>
-                {floorplanImg ? (
+                {floorplanData ? (
+                  <div style={{ height: 220 }}>
+                    <FloorPlan2D data={floorplanData} imageUrl={floorplanImg} compact />
+                  </div>
+                ) : floorplanImg ? (
                   <img src={floorplanImg} alt="평면도" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 180 }} />
                 ) : (
                   <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#CBD5E1', fontSize: 13 }}>

@@ -418,7 +418,7 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
 }
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────
-export default function FloorPlan2D({ data, imageUrl }) {
+export default function FloorPlan2D({ data, imageUrl, compact = false }) {
   const { imgWidth: W, imgHeight: H, walls, windows, doors = [], rooms, isSkeleton = false } = data;
   const canvasRef = useRef(null);
   const [hovered, setHovered]     = useState(null);
@@ -572,8 +572,8 @@ export default function FloorPlan2D({ data, imageUrl }) {
         )}
       </div>
 
-      {/* ── 우측 패널 ── */}
-      <div style={{ width: 196, marginLeft: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* ── 우측 패널 (compact 모드에선 숨김) ── */}
+      {!compact && <div style={{ width: 196, marginLeft: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
 
         <div style={{ background: 'white', borderRadius: 12, padding: 16, border: '1px solid #E2E8F0', flex: 1, overflowY: 'auto' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', marginBottom: 12, letterSpacing: '0.05em' }}>공간 목록</div>
@@ -610,7 +610,7 @@ export default function FloorPlan2D({ data, imageUrl }) {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
