@@ -12,6 +12,7 @@ import AIChat from './pages/AIChat';
 import AdminDashboard from './pages/AdminDashboard';
 import FloorPlanLabeler from './pages/FloorPlanLabeler';
 import FloorPlanTracer from './pages/FloorPlanTracer';
+import UserProfile from './pages/UserProfile';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="label" element={<FloorPlanLabeler />} />
             <Route path="trace" element={<FloorPlanTracer />} />
+            <Route path="profile" element={<UserProfile />} />
           </Route>
         </Routes>
       </BrowserRouter>

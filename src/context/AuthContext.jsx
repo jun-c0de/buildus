@@ -92,6 +92,23 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('buildus_session');
   }
 
+  function updateProfile(name) {
+    const users = initUsers();
+    const updated = users.map(u => u.id === currentUser.id ? { ...u, name } : u);
+    persistUsers(updated);
+    const safe = { ...currentUser, name };
+    setCurrentUser(safe);
+    localStorage.setItem('buildus_session', JSON.stringify(safe));
+  }
+
+  function changePassword(oldPassword, newPassword) {
+    const users = initUsers();
+    const found = users.find(u => u.id === currentUser.id);
+    if (!found || found.password !== oldPassword) throw new Error('현재 비밀번호가 올바르지 않습니다.');
+    const updated = users.map(u => u.id === currentUser.id ? { ...u, password: newPassword } : u);
+    persistUsers(updated);
+  }
+
   // 관리자 전용: 사용자 역할 변경
   function changeRole(userId, newRole) {
     if (currentUser?.role !== 'admin') return;
@@ -111,7 +128,7 @@ export function AuthProvider({ children }) {
       currentUser,
       isAdmin: currentUser?.role === 'admin',
       isLoggedIn: !!currentUser,
-      login, signup, logout, changeRole, getAllUsers,
+      login, signup, logout, updateProfile, changePassword, changeRole, getAllUsers,
     }}>
       {children}
     </AuthContext.Provider>
