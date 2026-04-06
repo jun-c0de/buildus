@@ -417,13 +417,38 @@ function renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, i
   }
 }
 
+const SCALE = 10; // FloorPlan3D와 동일
+
+// ── 2D ↔ 3D 좌표 변환 ────────────────────────────────────────────
+function worldToSVG(wx, wz, W, H) {
+  return { cx: (wx / SCALE + 0.5) * W, cy: (wz / SCALE + 0.5) * H };
+}
+
 // ── 컴포넌트 ─────────────────────────────────────────────────────
-export default function FloorPlan2D({ data, imageUrl, compact = false }) {
+export default function FloorPlan2D({
+  data, imageUrl, compact = false,
+  placedFurniture = [], placingFurniture = null, selectedUid = null,
+  onPlace, onSelectPlaced, onRotate, onDelete, onUpdatePosition,
+}) {
   const { imgWidth: W, imgHeight: H, walls, windows, doors = [], rooms, isSkeleton = false } = data;
-  const canvasRef = useRef(null);
+  const canvasRef  = useRef(null);
+  const svgRef     = useRef(null);
+  const dragRef    = useRef(null);   // { uid, startWx, startWz, origX, origZ, hasMoved }
+  const movedRef   = useRef(false);  // 드래그 후 SVG onClick 막기
   const [hovered, setHovered]     = useState(null);
   const [loadedImg, setLoadedImg] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const viewStyle = 'styled';
+
+  // 클라이언트 좌표 → world 좌표
+  const clientToWorld = (e) => {
+    const svg = svgRef.current;
+    if (!svg) return { wx: 0, wz: 0 };
+    const rect = svg.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (W / rect.width);
+    const py = (e.clientY - rect.top)  * (H / rect.height);
+    return { wx: (px / W - 0.5) * SCALE, wz: (py / H - 0.5) * SCALE };
+  };
 
   // 도면 원본 이미지 로드 (photo 모드 폴백용으로만 유지)
   useEffect(() => {
@@ -507,32 +532,149 @@ export default function FloorPlan2D({ data, imageUrl, compact = false }) {
     renderCanvas({ ctx, W, H, roomPolys, svgEdges, windows, doors, walls, img: loadedImg, hoveredSet, viewStyle, isSkeleton });
   }, [roomPolys, svgEdges, windows, doors, walls, loadedImg, hoveredSet, viewStyle, isSkeleton, W, H]);
 
+  // SVG 클릭 → 가구 배치 (드래그 직후엔 스킵)
+  const handleSVGClick = (e) => {
+    if (movedRef.current) return;
+    if (!placingFurniture || !onPlace) return;
+    const { wx, wz } = clientToWorld(e);
+    onPlace(wx, wz);
+  };
+
+  // SVG 포인터 이동 → 드래그 중이면 위치 업데이트
+  const handlePointerMove = (e) => {
+    if (!dragRef.current) return;
+    const { wx, wz } = clientToWorld(e);
+    const dx = wx - dragRef.current.startWx;
+    const dz = wz - dragRef.current.startWz;
+    if (!dragRef.current.hasMoved && Math.hypot(dx, dz) > 0.08) {
+      dragRef.current.hasMoved = true;
+      movedRef.current = true;
+      setIsDragging(true);
+    }
+    if (dragRef.current.hasMoved) {
+      onUpdatePosition?.(dragRef.current.uid, dragRef.current.origX + dx, dragRef.current.origZ + dz);
+    }
+  };
+
+  // SVG 포인터 업 → 드래그 종료
+  const handlePointerUp = () => {
+    dragRef.current = null;
+    setIsDragging(false);
+    // onClick이 먼저 처리된 뒤 초기화
+    setTimeout(() => { movedRef.current = false; }, 10);
+  };
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', gap: 0 }}>
 
       {/* ── 메인 뷰어 ── */}
       <div style={{
-        flex: 1, borderRadius: 16, overflow: 'hidden',
-        border: '1px solid #E2E8F0', position: 'relative', background: '#F5F4F0',
+        flex: 1, borderRadius: compact ? 0 : 16, overflow: 'hidden',
+        border: compact ? 'none' : '1px solid #E2E8F0',
+        position: 'relative', background: '#F5F4F0',
+        cursor: placingFurniture ? 'crosshair' : 'default',
       }}>
         {/* Canvas: 실제 렌더링 */}
         <canvas ref={canvasRef} width={W} height={H}
           style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
 
-        {/* SVG 오버레이: 이벤트 감지 전용 (완전 투명) */}
-        <svg viewBox={`0 0 ${W} ${H}`}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        {/* SVG 오버레이: 이벤트 + 가구 렌더링 */}
+        <svg ref={svgRef}
+          viewBox={`0 0 ${W} ${H}`}
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            cursor: isDragging ? 'grabbing' : placingFurniture ? 'crosshair' : 'default',
+            touchAction: 'none',
+          }}
           preserveAspectRatio="xMidYMid meet"
+          onClick={handleSVGClick}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
+          {/* 방 호버 영역 */}
           {roomPolys.map(r => (
             <polygon key={r.key}
               points={r.poly.map(p => p.join(',')).join(' ')}
               fill="transparent" stroke="transparent"
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: placingFurniture ? 'crosshair' : 'pointer' }}
               onMouseEnter={() => setHovered(r.key)}
               onMouseLeave={() => setHovered(null)}
             />
           ))}
+
+          {/* 배치된 가구 */}
+          {placedFurniture.map(f => {
+            const { cx, cy } = worldToSVG(f.x, f.z, W, H);
+            const rw = f.config.width  * (W / SCALE);
+            const rd = f.config.depth  * (H / SCALE);
+            const deg = (f.rotation ?? 0) * 180 / Math.PI;
+            const isSel = f.uid === selectedUid;
+            const fontSize = Math.max(Math.min(rw, rd) * 0.28, 8);
+            return (
+              <g key={f.uid}
+                transform={`rotate(${deg}, ${cx}, ${cy})`}
+                style={{ cursor: isDragging && dragRef.current?.uid === f.uid ? 'grabbing' : 'grab' }}
+                onPointerDown={e => {
+                  e.stopPropagation();
+                  movedRef.current = false;
+                  const { wx, wz } = clientToWorld(e);
+                  dragRef.current = { uid: f.uid, startWx: wx, startWz: wz, origX: f.x, origZ: f.z, hasMoved: false };
+                  onSelectPlaced?.(f.uid);
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* 그림자 */}
+                <rect
+                  x={cx - rw/2 + 2} y={cy - rd/2 + 2}
+                  width={rw} height={rd}
+                  rx="4" fill="rgba(0,0,0,0.08)"
+                />
+                {/* 본체 */}
+                <rect
+                  x={cx - rw/2} y={cy - rd/2}
+                  width={rw} height={rd} rx="4"
+                  fill={isSel ? 'rgba(59,130,246,0.18)' : 'rgba(226,232,240,0.75)'}
+                  stroke={isSel ? '#3B82F6' : '#94A3B8'}
+                  strokeWidth={isSel ? 2.5 : 1.5}
+                />
+                {/* 방향 표시선 */}
+                <line
+                  x1={cx} y1={cy - rd/2} x2={cx} y2={cy - rd/2 + Math.min(rd * 0.3, 10)}
+                  stroke={isSel ? '#3B82F6' : '#94A3B8'} strokeWidth="2" strokeLinecap="round"
+                />
+                {/* 라벨 */}
+                <text
+                  x={cx} y={cy}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={fontSize}
+                  fontFamily="Pretendard,'Apple SD Gothic Neo',sans-serif"
+                  fontWeight="700"
+                  fill={isSel ? '#1D4ED8' : '#475569'}
+                >{f.config.name}</text>
+
+                {/* 선택 시 액션 버튼 */}
+                {isSel && (
+                  <>
+                    {/* 회전 버튼 */}
+                    <g onClick={e => { e.stopPropagation(); onRotate?.(f.uid); }} style={{ cursor: 'pointer' }}>
+                      <circle cx={cx + rw/2 + 10} cy={cy - rd/2 - 10} r="12" fill="#3B82F6" />
+                      <text x={cx + rw/2 + 10} y={cy - rd/2 - 10}
+                        textAnchor="middle" dominantBaseline="middle"
+                        fontSize="12" fill="white" fontWeight="700">↻</text>
+                    </g>
+                    {/* 삭제 버튼 */}
+                    <g onClick={e => { e.stopPropagation(); onDelete?.(f.uid); }} style={{ cursor: 'pointer' }}>
+                      <circle cx={cx + rw/2 + 10} cy={cy - rd/2 + 12} r="12" fill="#EF4444" />
+                      <text x={cx + rw/2 + 10} y={cy - rd/2 + 12}
+                        textAnchor="middle" dominantBaseline="middle"
+                        fontSize="11" fill="white" fontWeight="700">✕</text>
+                    </g>
+                  </>
+                )}
+              </g>
+            );
+          })}
         </svg>
 
         {/* 나침반 */}

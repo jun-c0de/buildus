@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text, OrthographicCamera } from '@react-three/drei';
+import { useMemo, useState, useRef, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, PointerLockControls, Text, PerspectiveCamera, Environment, useGLTF } from '@react-three/drei';
+import { EffectComposer, SMAA, Bloom, N8AO } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { ROOM_CONFIG, OPEN_PLAN_GROUPS, ROOM_FLOOR_COLOR } from '../data/roomConfig';
 
@@ -15,7 +16,7 @@ const BALCONY_TYPES     = ['공간_발코니', '공간_실외기실'];
 
 // ── 좌표 정규화 ──────────────────────────────────────────────────
 function normalize(poly, W, H) {
-  return poly.map(([x, y]) => [(x / W - 0.5) * SCALE, (y / H - 0.5) * SCALE]);
+  return poly.map(([x, y]) => [(x / W - 0.5) * SCALE, -(y / H - 0.5) * SCALE]);
 }
 function makeShape(pts) {
   const s = new THREE.Shape();
@@ -43,7 +44,7 @@ function pointInPoly(pt, poly) {
 // ── 이미지 Y → 3D world Z 변환 (floor 회전 -π/2 보정: shape_Y → world_-Z)
 // 방 바닥: normalize()[1] = +Yn → rotation(-π/2) → world Z = -Yn
 // 모든 직접 배치 요소(벽·텍스트·가구)는 -Yn 을 써야 방 바닥과 일치
-function toWorldZ(yImg, H) { return -(yImg / H - 0.5) * SCALE; }
+function toWorldZ(yImg, H) { return (yImg / H - 0.5) * SCALE; }
 
 function calcBounds(rooms, W, H) {
   if (!rooms.length) return { minX:-5, maxX:5, minZ:-5, maxZ:5, cx:0, cz:0, w:10, d:10 };
@@ -350,7 +351,7 @@ function Wall({ poly, W, H }) {
   if (!geo) return null;
   return (
     <mesh geometry={geo} rotation={[-Math.PI/2, 0, 0]} castShadow receiveShadow>
-      <meshStandardMaterial color="#E6E4E0" roughness={0.55} />
+      <meshStandardMaterial color="#F5F3EF" roughness={0.85} metalness={0} />
     </mesh>
   );
 }
@@ -376,7 +377,7 @@ function WallSeg({ p1, p2, isExterior, hasDoor, isBalconyEdge }) {
 
   const thick = isExterior ? 0.16 : 0.07;
   const h     = isExterior ? WALL_H : WALL_H * 0.96;
-  const color = isExterior ? '#E0DDD8' : '#EDEAE6';
+  const color = isExterior ? '#F2F0ED' : '#FAFAF8';
   const angle = Math.atan2(dz, dx);
   const ux = dx / len, uz = dz / len;
 
@@ -389,7 +390,7 @@ function WallSeg({ p1, p2, isExterior, hasDoor, isBalconyEdge }) {
     return (
       <mesh key={key} position={[pcx, h / 2, pcz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
         <boxGeometry args={[partLen, h, thick]} />
-        <meshStandardMaterial color={color} roughness={0.55} />
+        <meshStandardMaterial color={color} roughness={0.85} metalness={0} />
       </mesh>
     );
   };
@@ -418,7 +419,7 @@ function WallSeg({ p1, p2, isExterior, hasDoor, isBalconyEdge }) {
         {/* 문 상단 인방 */}
         <mesh position={[doorCX, lintY, doorCZ]} rotation={[0, -angle, 0]} castShadow>
           <boxGeometry args={[doorW, lintH, thick]} />
-          <meshStandardMaterial color={color} roughness={0.55} />
+          <meshStandardMaterial color={color} roughness={0.85} metalness={0} />
         </mesh>
       </>
     );
@@ -429,7 +430,7 @@ function WallSeg({ p1, p2, isExterior, hasDoor, isBalconyEdge }) {
   return (
     <mesh position={[cx, h / 2, cz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
       <boxGeometry args={[len, h, thick]} />
-      <meshStandardMaterial color={color} roughness={0.55} />
+      <meshStandardMaterial color={color} roughness={0.85} metalness={0} />
     </mesh>
   );
 }
@@ -450,7 +451,7 @@ function WallSkeletonSeg({ seg, W, H }) {
   return (
     <mesh position={[cx, WALL_H/2, cz]} rotation={[0, -angle, 0]} castShadow receiveShadow>
       <boxGeometry args={[len, WALL_H, 0.13]} />
-      <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+      <meshStandardMaterial color="#F2F0ED" roughness={0.85} metalness={0} />
     </mesh>
   );
 }
@@ -473,7 +474,7 @@ function DoorSeg3D({ seg, W, H }) {
       {/* 인방 (lintel) */}
       <mesh position={[cx, doorH + lintH/2, cz]} rotation={[0, -angle, 0]} castShadow>
         <boxGeometry args={[len, lintH, 0.13]} />
-        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+        <meshStandardMaterial color="#F2F0ED" roughness={0.85} metalness={0} />
       </mesh>
       {/* 문짝 패널 (90도 열린 상태) */}
       <mesh position={[panelCX, doorH/2, panelCZ]} rotation={[0, -(angle + Math.PI/2), 0]}>
@@ -498,11 +499,11 @@ function WindowSeg3D({ seg, W, H }) {
     <group>
       <mesh position={[cx, sillH/2, cz]} rotation={[0, -angle, 0]} castShadow>
         <boxGeometry args={[len, sillH, 0.13]} />
-        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+        <meshStandardMaterial color="#F2F0ED" roughness={0.85} metalness={0} />
       </mesh>
       <mesh position={[cx, sillH + winH + headH/2, cz]} rotation={[0, -angle, 0]} castShadow>
         <boxGeometry args={[len, headH, 0.13]} />
-        <meshStandardMaterial color="#D6D2CB" roughness={0.54} />
+        <meshStandardMaterial color="#F2F0ED" roughness={0.85} metalness={0} />
       </mesh>
       <mesh position={[cx, sillH + winH/2, cz]} rotation={[0, -angle, 0]}>
         <boxGeometry args={[len * 0.94, winH, 0.04]} />
@@ -512,9 +513,96 @@ function WindowSeg3D({ seg, W, H }) {
   );
 }
 
+// ── 1인칭 이동 ────────────────────────────────────────────────────
+const EYE_H = 1.6;
+
+function FirstPersonController({ bounds }) {
+  const { camera } = useThree();
+  const plcRef = useRef();
+  const keys = useRef({});
+
+  useEffect(() => {
+    // 아파트 중심, 눈높이에서 시작
+    camera.position.set(bounds.cx, EYE_H, bounds.cz + 1);
+    camera.lookAt(bounds.cx, EYE_H, bounds.cz - 2);
+  }, [bounds]);
+
+  useEffect(() => {
+    const down = e => { keys.current[e.key.toLowerCase()] = true; };
+    const up   = e => { keys.current[e.key.toLowerCase()] = false; };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!plcRef.current?.isLocked) return;
+    const speed = 4 * delta;
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+    if (keys.current['w'] || keys.current['arrowup'])    camera.position.addScaledVector(forward,  speed);
+    if (keys.current['s'] || keys.current['arrowdown'])  camera.position.addScaledVector(forward, -speed);
+    if (keys.current['a'] || keys.current['arrowleft'])  camera.position.addScaledVector(right,   -speed);
+    if (keys.current['d'] || keys.current['arrowright']) camera.position.addScaledVector(right,    speed);
+    camera.position.y = EYE_H; // 높이 고정
+  });
+
+  return <PointerLockControls ref={plcRef} />;
+}
+
+// ── GLB 가구 모델 ─────────────────────────────────────────────────
+function FurnitureModel({ config, position, rotation = 0, selected, onClick, onDragStart }) {
+  const { scene } = useGLTF(config.glbClosed);
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+
+  return (
+    <group
+      position={position}
+      rotation={[0, rotation, 0]}
+      onClick={e => { e.stopPropagation(); onClick(); }}
+      onPointerDown={e => { e.stopPropagation(); onDragStart(); }}
+    >
+      <primitive object={cloned} scale={0.001} />
+      {selected && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+          <planeGeometry args={[config.width + 0.12, config.depth + 0.12]} />
+          <meshBasicMaterial color="#3B82F6" transparent opacity={0.25} depthWrite={false} />
+        </mesh>
+      )}
+      <lineSegments position={[0, config.height / 2, 0]}>
+        <edgesGeometry args={[new THREE.BoxGeometry(config.width, config.height, config.depth)]} />
+        <lineBasicMaterial color={selected ? '#3B82F6' : '#94A3B8'} transparent opacity={selected ? 0.6 : 0.2} />
+      </lineSegments>
+    </group>
+  );
+}
+
+// ── 배치/드래그 감지용 바닥 평면 ─────────────────────────────────
+function InteractionFloor({ bounds, isPlacing, isDragging, onPlace, onDragMove, onDragEnd }) {
+  return (
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[bounds.cx, 0.001, bounds.cz]}
+      onClick={e => { if (isPlacing) { e.stopPropagation(); onPlace(e.point.x, e.point.z); } }}
+      onPointerMove={e => { if (isDragging) { e.stopPropagation(); onDragMove(e.point.x, e.point.z); } }}
+      onPointerUp={e => { if (isDragging) { e.stopPropagation(); onDragEnd(); } }}
+      onPointerLeave={() => { if (isDragging) onDragEnd(); }}
+    >
+      <planeGeometry args={[bounds.w + 10, bounds.d + 10]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
+
 // ── 씬 ───────────────────────────────────────────────────────────
-function Scene({ data }) {
+function Scene({ data, viewMode, placedFurniture, placingFurniture, onPlace, onSelectPlaced, onUpdatePosition }) {
   const { imgWidth:W, imgHeight:H, walls, windows, doors = [], rooms, isSkeleton = false } = data;
+  const isPlacingMode = !!placingFurniture;
+  const [draggingUid, setDraggingUid] = useState(null);
+  const orbitRef = useRef();
   const bounds = useMemo(() => calcBounds(rooms, W, H), [rooms, W, H]);
 
   // 오픈플랜 그룹 맵 (roomName → groupIndex)
@@ -608,57 +696,95 @@ function Scene({ data }) {
     } catch { return null; }
   }, [wallSegs]);
 
-  // 등각투영 카메라 위치 (아파트 우상단 45도)
-  const isoX = bounds.cx + (bounds.w*0.6 + 10);
-  const isoZ = bounds.cz + (bounds.d*0.6 + 10);
+  // 달하우스 뷰 카메라
+  // 2D 좌표계: Y=0(top)→worldZ=+, Y=H(bottom)→worldZ=-
+  // 카메라를 -Z 방향(남쪽)에 두면: screen_top=+Z(2D top), screen_right=+X(2D right) → 2D와 동일
+  const maxDim = Math.max(bounds.w, bounds.d);
+  const camX = bounds.cx + maxDim * 0.15;
+  const camY = maxDim * 1.05;
+  const camZ = bounds.cz + maxDim * 1.3;   // 북쪽(+Z)에서 내려다봄, 좌우 일치
 
   return (
     <>
-      {/* 등각투영 직교 카메라 */}
-      <OrthographicCamera
+      {/* 아키스케치 스타일 원근 카메라 (fov:60) */}
+      <PerspectiveCamera
         makeDefault
-        position={[isoX, 18, isoZ]}
-        zoom={46}
+        fov={60}
         near={0.1}
-        far={200}
+        far={100000}
+        position={[camX, camY, camZ]}
       />
 
-      {/* 캔버스 배경 — 2D와 동일한 중립 베이지 */}
-      <color attach="background" args={['#F2F2F0']} />
+      {/* 배경 — 밝은 라이트 그레이 (아키스케치 에디터 스타일) */}
+      <color attach="background" args={['#EBEBEB']} />
 
-      {/* 조명 — iso3d 스타일 (강한 방향광 + 부드러운 앰비언트) */}
-      <ambientLight intensity={0.92} />
+      {/* 조명 — 아키스케치 스타일: 소프트 앰비언트 + 태양광 */}
+      <ambientLight color="#FFFFFF" intensity={0.6} />
       <directionalLight
-        position={[bounds.cx+10, 24, bounds.cz+6]}
-        intensity={1.4}
+        position={[bounds.cx + maxDim*0.8, maxDim*1.4, bounds.cz + maxDim*0.4]}
+        intensity={0.75}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-near={0.5}
-        shadow-camera-far={80}
-        shadow-camera-left={-22}  shadow-camera-right={22}
-        shadow-camera-top={22}    shadow-camera-bottom={-22}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={0.1}
+        shadow-camera-far={350000}
+        shadow-camera-left={-(maxDim+4)}  shadow-camera-right={maxDim+4}
+        shadow-camera-top={maxDim+4}      shadow-camera-bottom={-(maxDim+4)}
+        shadow-bias={-0.0001}
+        shadow-radius={2}
       />
-      <directionalLight position={[bounds.cx-8, 12, bounds.cz-6]} intensity={0.22} color="#EEF0F4" />
-      <hemisphereLight skyColor="#F0EFEC" groundColor="#E8E4DE" intensity={0.42} />
+      <hemisphereLight skyColor="#E8E8E8" groundColor="#B0B0B0" intensity={0.3} />
 
-      {/* 배경 바닥 — 아파트 외곽 형태 (방 색상과 같은 아이보리) */}
+      {/* 배경 바닥 — 아파트 외곽 형태 (흰 베이스) */}
       {outerPoly ? (
         <mesh rotation={[-Math.PI/2,0,0]} position={[0,-0.01,0]} receiveShadow>
           <shapeGeometry args={[makeShape(outerPoly)]} />
-          <meshStandardMaterial color="#F5F0E8" roughness={0.88} />
+          <meshStandardMaterial color="#F8F8F6" roughness={0.9} metalness={0} />
         </mesh>
       ) : (
         <mesh rotation={[-Math.PI/2,0,0]} position={[bounds.cx,-0.01,bounds.cz]} receiveShadow>
           <planeGeometry args={[bounds.w+2.5, bounds.d+2.5]} />
-          <meshStandardMaterial color="#F5F0E8" roughness={0.88} />
+          <meshStandardMaterial color="#F8F8F6" roughness={0.9} metalness={0} />
         </mesh>
       )}
 
       {/* 방 바닥 */}
       {rooms.map((r,i) => <Room key={i} room={r} W={W} H={H} />)}
 
-      {/* 가구 */}
+      {/* 기본 자동 가구 */}
       {rooms.map((r,i) => <RoomFurniture key={i} room={r} W={W} H={H} />)}
+
+      {/* 사용자 배치 가구 */}
+      {placedFurniture && placedFurniture.map(item => (
+        <FurnitureModel
+          key={item.uid}
+          config={item.config}
+          position={[item.x, 0, item.z]}
+          rotation={item.rotation}
+          selected={item.selected}
+          onClick={() => { if (!draggingUid) onSelectPlaced(item.uid); }}
+          onDragStart={() => {
+            setDraggingUid(item.uid);
+            onSelectPlaced(item.uid);
+            if (orbitRef.current) orbitRef.current.enabled = false;
+          }}
+        />
+      ))}
+
+      {/* 배치/드래그 감지 바닥 */}
+      {(isPlacingMode || draggingUid) && (
+        <InteractionFloor
+          bounds={bounds}
+          isPlacing={isPlacingMode}
+          isDragging={!!draggingUid}
+          onPlace={(x, z) => onPlace(x, z)}
+          onDragMove={(x, z) => { if (draggingUid) onUpdatePosition(draggingUid, x, z); }}
+          onDragEnd={() => {
+            setDraggingUid(null);
+            if (orbitRef.current) orbitRef.current.enabled = true;
+          }}
+        />
+      )}
 
       {/* 벽/창호/문 — skeleton vs 레거시 분기 */}
       {isSkeleton ? (
@@ -676,27 +802,108 @@ function Scene({ data }) {
         </>
       )}
 
-      <OrbitControls
-        enableDamping dampingFactor={0.07}
-        minZoom={22} maxZoom={130}
-        maxPolarAngle={Math.PI/2.05}
-        target={[bounds.cx, 0, bounds.cz]}
-      />
+      {viewMode === 'firstperson' ? (
+        <FirstPersonController bounds={bounds} />
+      ) : (
+        <OrbitControls
+          ref={orbitRef}
+          enableDamping dampingFactor={0.05}
+          minDistance={2} maxDistance={maxDim * 5}
+          maxPolarAngle={Math.PI / 2.05}
+          target={[bounds.cx, 0, bounds.cz]}
+        />
+      )}
+
+      {/* IBL — 스튜디오 환경맵 (가구/바닥 재질 반사) */}
+      <Environment preset="studio" environmentIntensity={0.2} background={false} />
+
+      {/* 후처리 파이프라인 */}
+      <EffectComposer multisampling={4}>
+        {/* N8AO — SSAO보다 성능/품질 좋은 접촉 그림자 */}
+        <N8AO
+          aoRadius={0.8}
+          intensity={2.2}
+          distanceFalloff={0.5}
+          screenSpaceRadius={false}
+          color="black"
+        />
+        {/* Bloom — 창문/밝은 면 빛 번짐 (subtle) */}
+        <Bloom
+          intensity={0.18}
+          luminanceThreshold={0.85}
+          luminanceSmoothing={0.02}
+          mipmapBlur
+        />
+        {/* SMAA — 안티앨리어싱 */}
+        <SMAA />
+      </EffectComposer>
     </>
   );
 }
 
 // ── 메인 ─────────────────────────────────────────────────────────
-export default function FloorPlan3D({ data }) {
+export default function FloorPlan3D({ data, placedFurniture = [], placingFurniture = null, onPlace, onSelectPlaced, onUpdatePosition }) {
+  const [viewMode, setViewMode] = useState('orbit');
+  const isFP = viewMode === 'firstperson';
+
   return (
     <div style={{
       width:'100%', height:'100%', borderRadius:16, overflow:'hidden',
       border:'1px solid #E2E8F0', position:'relative',
+      cursor: placingFurniture ? 'crosshair' : 'default',
     }}>
-      <Canvas shadows camera={{ position:[2,20,9], fov:36 }}>
-        <Scene data={data} />
+      <Canvas
+        shadows
+        frameloop="always"
+        gl={{
+          antialias: true,
+          logarithmicDepthBuffer: true,
+          powerPreference: 'high-performance',
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 0.8,
+        }}
+      >
+        <Scene
+          data={data}
+          viewMode={viewMode}
+          placedFurniture={placedFurniture}
+          placingFurniture={placingFurniture}
+          onPlace={onPlace}
+          onSelectPlaced={onSelectPlaced}
+          onUpdatePosition={onUpdatePosition}
+        />
       </Canvas>
 
+      {/* 모드 전환 버튼 */}
+      <button
+        onClick={() => setViewMode(isFP ? 'orbit' : 'firstperson')}
+        style={{
+          position:'absolute', top:14, right:14,
+          background: isFP ? 'rgba(99,102,241,0.85)' : 'rgba(30,41,59,0.7)',
+          backdropFilter:'blur(8px)',
+          color:'#FFFFFF', border:'1px solid rgba(255,255,255,0.15)',
+          borderRadius:20, padding:'6px 16px',
+          fontSize:12, fontWeight:600, cursor:'pointer', letterSpacing:'0.03em',
+        }}
+      >
+        {isFP ? '궤도 뷰' : '1인칭'}
+      </button>
+
+      {/* 배치 모드 오버레이 힌트 */}
+      {placingFurniture && (
+        <div style={{
+          position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
+          background:'rgba(59,130,246,0.85)', backdropFilter:'blur(8px)',
+          color:'white', padding:'7px 20px', borderRadius:24,
+          fontSize:13, fontWeight:600,
+          border:'1px solid rgba(255,255,255,0.2)',
+          pointerEvents:'none',
+        }}>
+          바닥을 클릭해서 {placingFurniture.name} 배치
+        </div>
+      )}
+
+      {/* 하단 힌트 */}
       <div style={{
         position:'absolute', bottom:16, left:'50%', transform:'translateX(-50%)',
         background:'rgba(30,41,59,0.7)', backdropFilter:'blur(8px)',
@@ -705,9 +912,19 @@ export default function FloorPlan3D({ data }) {
         border:'1px solid rgba(255,255,255,0.1)',
         pointerEvents:'none', display:'flex', gap:16,
       }}>
-        <span>🖱️ 드래그: 회전</span>
-        <span>⚲ 스크롤: 줌</span>
-        <span>우클릭: 이동</span>
+        {isFP ? (
+          <>
+            <span>클릭: 마우스 잠금</span>
+            <span>WASD: 이동</span>
+            <span>ESC: 해제</span>
+          </>
+        ) : (
+          <>
+            <span>드래그: 회전</span>
+            <span>스크롤: 줌</span>
+            <span>우클릭: 이동</span>
+          </>
+        )}
       </div>
     </div>
   );

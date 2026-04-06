@@ -35,6 +35,7 @@ export default function Layout() {
   const { pathname } = useLocation();
   const { currentUser, isAdmin, isLoggedIn, logout } = useAuth();
   const isHome = pathname === '/';
+  const isEditor = pathname === '/floorplan';
 
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'signup'
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -47,8 +48,8 @@ export default function Layout() {
       {/* 인증 모달 */}
       {authModal && <AuthModal defaultTab={authModal} onClose={() => setAuthModal(null)} />}
 
-      {/* 헤더 */}
-      <header style={{
+      {/* 헤더 — 에디터 페이지에서는 숨김 */}
+      {isEditor ? null : <header style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
         borderBottom: '1px solid #F1F5F9', height: 60,
@@ -155,7 +156,7 @@ export default function Layout() {
             </>
           )}
         </div>
-      </header>
+      </header>}
 
       <main>
         <Outlet />
